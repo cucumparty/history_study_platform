@@ -1,0 +1,119 @@
+import django.db.models.deletion
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Era',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=200, verbose_name='Название эпохи')),
+                ('description', models.TextField(blank=True, verbose_name='Описание')),
+                ('order', models.PositiveIntegerField(default=0, verbose_name='Порядок')),
+                ('color', models.CharField(default='#8B4513', max_length=7, verbose_name='Цвет (hex)')),
+            ],
+            options={
+                'verbose_name': 'Эпоха',
+                'verbose_name_plural': 'Эпохи',
+                'ordering': ['order'],
+            },
+        ),
+        migrations.CreateModel(
+            name='HistoryFact',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('title', models.CharField(max_length=300, verbose_name='Заголовок факта')),
+                ('content', models.TextField(verbose_name='Содержание')),
+                ('year', models.IntegerField(blank=True, null=True, verbose_name='Год события')),
+                ('is_featured', models.BooleanField(default=False, verbose_name='Показать на главной')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('era', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='facts', to='core.era', verbose_name='Эпоха')),
+            ],
+            options={
+                'verbose_name': 'Интересный факт',
+                'verbose_name_plural': 'Интересные факты',
+                'ordering': ['-is_featured', '-created_at'],
+            },
+        ),
+        migrations.CreateModel(
+            name='Lecture',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('title', models.CharField(max_length=300, verbose_name='Заголовок')),
+                ('slug', models.SlugField(unique=True, verbose_name='URL-slug')),
+                ('short_description', models.CharField(max_length=500, verbose_name='Краткое описание')),
+                ('content', models.TextField(verbose_name='Содержание лекции')),
+                ('year_start', models.IntegerField(blank=True, null=True, verbose_name='Начало периода (год)')),
+                ('year_end', models.IntegerField(blank=True, null=True, verbose_name='Конец периода (год)')),
+                ('order', models.PositiveIntegerField(default=0, verbose_name='Порядок')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('era', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='lectures', to='core.era', verbose_name='Эпоха')),
+            ],
+            options={
+                'verbose_name': 'Лекция',
+                'verbose_name_plural': 'Лекции',
+                'ordering': ['era__order', 'order'],
+            },
+        ),
+        migrations.CreateModel(
+            name='HistoryCard',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('front', models.CharField(max_length=400, verbose_name='Лицевая сторона (дата/вопрос)')),
+                ('back', models.TextField(verbose_name='Обратная сторона (ответ/событие)')),
+                ('hint', models.CharField(blank=True, max_length=300, verbose_name='Подсказка')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('era', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='cards', to='core.era', verbose_name='Эпоха')),
+                ('lecture', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='cards', to='core.lecture', verbose_name='Лекция')),
+            ],
+            options={
+                'verbose_name': 'Карточка',
+                'verbose_name_plural': 'Карточки',
+                'ordering': ['-created_at'],
+            },
+        ),
+        migrations.CreateModel(
+            name='QuizQuestion',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('question_type', models.CharField(choices=[('lecture_test', 'Тест после лекции'), ('quiz', 'Квиз')], default='quiz', max_length=20, verbose_name='Тип вопроса')),
+                ('text', models.TextField(verbose_name='Текст вопроса')),
+                ('option_a', models.CharField(max_length=300, verbose_name='Вариант А')),
+                ('option_b', models.CharField(max_length=300, verbose_name='Вариант Б')),
+                ('option_c', models.CharField(max_length=300, verbose_name='Вариант В')),
+                ('option_d', models.CharField(max_length=300, verbose_name='Вариант Г')),
+                ('correct_option', models.CharField(choices=[('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D')], max_length=1, verbose_name='Правильный вариант')),
+                ('explanation', models.TextField(blank=True, verbose_name='Объяснение правильного ответа')),
+                ('order', models.PositiveIntegerField(default=0)),
+                ('lecture', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='questions', to='core.lecture', verbose_name='Лекция')),
+            ],
+            options={
+                'verbose_name': 'Вопрос',
+                'verbose_name_plural': 'Вопросы',
+                'ordering': ['order'],
+            },
+        ),
+        migrations.CreateModel(
+            name='TimelineEvent',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('title', models.CharField(max_length=300, verbose_name='Событие')),
+                ('year', models.IntegerField(verbose_name='Год')),
+                ('region', models.CharField(choices=[('russia', 'Россия'), ('europe', 'Европа'), ('asia', 'Азия'), ('america', 'Америка'), ('middle_east', 'Ближний Восток'), ('other', 'Другое')], max_length=20, verbose_name='Регион')),
+                ('description', models.TextField(blank=True, verbose_name='Описание')),
+                ('era', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='events', to='core.era', verbose_name='Эпоха')),
+            ],
+            options={
+                'verbose_name': 'Событие на таймлайне',
+                'verbose_name_plural': 'События на таймлайне',
+                'ordering': ['year'],
+            },
+        ),
+    ]
