@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}О проекте — Хроники России{% endblock %}
+
+{% block content %}
+<section class="page-hero page-hero--about">
+  <div class="container">
+    <h1 class="page-hero__title">О проекте</h1>
+    <p class="page-hero__sub">Тренажёр для взрослых, которые хотят знать историю</p>
+  </div>
+</section>
+
+<section class="about-content">
+  <div class="container container--narrow">
+    <div class="about-block">
+      <h2>Зачем это нужно</h2>
+      <p>
+        Многие взрослые люди хотят знать историю своей страны лучше, но традиционные учебники
+        кажутся скучными, а курсы — слишком академичными. Этот проект создан для тех,
+        кто хочет учиться в своём темпе, без давления и экзаменов.
+      </p>
+    </div>
+
+    <div class="about-block">
+      <h2>Как устроен проект</h2>
+      <ul class="about-list">
+        <li><strong>📜 Лекции</strong> — материал разбит на небольшие читаемые блоки с тестом в конце.</li>
+        <li><strong>🃏 Карточки</strong> — запоминай даты и события с помощью флипкарточек.</li>
+        <li><strong>🏆 Квизы</strong> — проверяй себя по любой теме в режиме игры.</li>
+        <li><strong>💡 Факты</strong> — неожиданные подробности, которых нет в учебниках.</li>
+        <li><strong>🌍 Таймлайн</strong> — видь, что происходило в России и в мире одновременно.</li>
+      </ul>
+    </div>
+
+    <div class="about-block">
+      <h2>Технический стек</h2>
+      <p>Проект написан на <strong>Python / Django</strong>, данные хранятся в <strong>SQLite</strong>.
+      Фронтенд — чистый HTML + CSS + немного JS, без тяжёлых фреймворков.</p>
+    </div>
+
+    <div class="about-block about-block--author">
+      <h2>Об авторе</h2>
+      <p>Учебный проект студента. Сделан с интересом к истории и желанием сделать её доступной для всех.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

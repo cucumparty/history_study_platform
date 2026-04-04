@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Хроники России — учи историю по-новому{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero__bg-pattern"></div>
+  <div class="hero__content">
+    <p class="hero__eyebrow">Образовательный тренажёр</p>
+    <h1 class="hero__title">История<br><em>России</em></h1>
+    <p class="hero__subtitle">
+      Интерактивные лекции, карточки для запоминания,
+      квизы и параллельные таймлайны — всё для тех,
+      кто хочет разобраться в истории без скуки.
+    </p>
+    <div class="hero__actions">
+      <a href="#lectures-section" class="btn btn--primary">Начать учиться</a>
+      <a href="{% url 'core:about' %}" class="btn btn--ghost">Узнать больше</a>
+    </div>
+    <div class="hero__stats">
+      <div class="hero__stat">
+        <span class="hero__stat-num">{{ total_lectures }}</span>
+        <span class="hero__stat-label">лекций</span>
+      </div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">5</span>
+        <span class="hero__stat-label">разделов</span>
+      </div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">∞</span>
+        <span class="hero__stat-label">попыток</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero__scroll-hint">
+    <span>↓</span>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="container">
+    <h2 class="section-title">Что внутри</h2>
+    <div class="features__grid">
+      <div class="feature-card feature-card--lectures">
+        <div class="feature-card__icon">📜</div>
+        <h3>Лекции</h3>
+        <p>Подробные материалы по ключевым периодам — от Рюриковичей до XX века. В конце каждой — тест.</p>
+        <a href="#lectures-section" class="feature-card__link">Перейти →</a>
+      </div>
+      <div class="feature-card feature-card--cards">
+        <div class="feature-card__icon">🃏</div>
+        <h3>Карточки</h3>
+        <p>Anki-подобные флипкарточки: дата или понятие на одной стороне, событие — на другой.</p>
+        <a href="#" class="feature-card__link">Скоро →</a>
+      </div>
+      <div class="feature-card feature-card--quiz">
+        <div class="feature-card__icon">🏆</div>
+        <h3>Квиз</h3>
+        <p>Проверь себя по любой теме. Выбирай эпоху, отвечай на вопросы, следи за прогрессом.</p>
+        <a href="#" class="feature-card__link">Скоро →</a>
+      </div>
+      <div class="feature-card feature-card--facts">
+        <div class="feature-card__icon">💡</div>
+        <h3>Факты</h3>
+        <p>Неожиданные и малоизвестные факты, которые не вошли в учебники.</p>
+        <a href="#" class="feature-card__link">Скоро →</a>
+      </div>
+      <div class="feature-card feature-card--timeline">
+        <div class="feature-card__icon">🌍</div>
+        <h3>Таймлайн</h3>
+        <p>Что происходило в одно время в России и в других странах — параллельное сравнение.</p>
+        <a href="#" class="feature-card__link">Скоро →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ERAS / LECTURES -->
+<section class="lectures-section" id="lectures-section">
+  <div class="container">
+    <h2 class="section-title">Лекции по эпохам</h2>
+    {% if eras %}
+      {% for era in eras %}
+        <div class="era-block" style="--era-color: {{ era.color }};">
+          <div class="era-block__header">
+            <span class="era-block__dot"></span>
+            <h3 class="era-block__name">{{ era.name }}</h3>
+            {% if era.description %}
+              <p class="era-block__desc">{{ era.description }}</p>
+            {% endif %}
+          </div>
+          {% if era.lectures.all %}
+            <div class="era-block__lectures">
+              {% for lecture in era.lectures.all %}
+                <a href="#" class="lecture-card">
+                  <div class="lecture-card__year">
+                    {% if lecture.year_start %}{{ lecture.year_start }}{% if lecture.year_end %}–{{ lecture.year_end }}{% endif %}{% else %}—{% endif %}
+                  </div>
+                  <h4 class="lecture-card__title">{{ lecture.title }}</h4>
+                  <p class="lecture-card__desc">{{ lecture.short_description|truncatechars:100 }}</p>
+                  <span class="lecture-card__action">Читать →</span>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="era-block__empty">Лекции по этой эпохе скоро появятся.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <p class="empty-state__icon">📚</p>
+        <p>Лекции ещё не добавлены. Загляни в <a href="/admin/">панель администратора</a> и добавь первую.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- FEATURED FACTS -->
+{% if featured_facts %}
+<section class="facts-preview">
+  <div class="container">
+    <h2 class="section-title">Интересные факты</h2>
+    <div class="facts-preview__grid">
+      {% for fact in featured_facts %}
+        <div class="fact-preview-card">
+          {% if fact.year %}<span class="fact-preview-card__year">{{ fact.year }} г.</span>{% endif %}
+          <h4>{{ fact.title }}</h4>
+          <p>{{ fact.content|truncatechars:180 }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

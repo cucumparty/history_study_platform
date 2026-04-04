@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Хроники России{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <nav class="navbar">
+    <a class="navbar__logo" href="{% url 'core:home' %}">
+      <span class="navbar__logo-icon">⚔</span>
+      <span class="navbar__logo-text">Хроники<br><em>России</em></span>
+    </a>
+    <button class="navbar__burger" id="navBurger" aria-label="Меню">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="navbar__links" id="navLinks">
+      <li><a href="{% url 'core:home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Главная</a></li>
+      <li><a href="#lectures-section" class="{% if 'lecture' in request.resolver_match.url_name|default:'' %}active{% endif %}">Лекции</a></li>
+      <li><a href="#" class="{% if 'cards' in request.resolver_match.url_name|default:'' %}active{% endif %}">Карточки</a></li>
+      <li><a href="#" class="{% if 'quiz' in request.resolver_match.url_name|default:'' %}active{% endif %}">Квиз</a></li>
+      <li><a href="#" class="{% if 'facts' in request.resolver_match.url_name|default:'' %}active{% endif %}">Факты</a></li>
+      <li><a href="{% url 'core:about' %}">О проекте</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    {% if messages %}
+      <div class="messages-container">
+        {% for message in messages %}
+          <div class="message message--{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p class="footer__brand">⚔ Хроники России</p>
+      <p class="footer__copy">Учебный проект &nbsp;·&nbsp; 2025</p>
+    </div>
+  </footer>
+
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
