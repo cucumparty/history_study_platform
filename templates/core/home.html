@@ -49,7 +49,7 @@
         <div class="feature-card__icon">📜</div>
         <h3>Лекции</h3>
         <p>Подробные материалы по ключевым периодам — от Рюриковичей до XX века. В конце каждой — тест.</p>
-        <a href="#lectures-section" class="feature-card__link">Перейти →</a>
+        <a href="{% url 'core:lecture_list' %}" class="feature-card__link">Перейти →</a>
       </div>
       <div class="feature-card feature-card--cards">
         <div class="feature-card__icon">🃏</div>
@@ -96,7 +96,7 @@
           {% if era.lectures.all %}
             <div class="era-block__lectures">
               {% for lecture in era.lectures.all %}
-                <a href="#" class="lecture-card">
+                <a href="{% url 'core:lecture_detail' lecture.slug %}" class="lecture-card">
                   <div class="lecture-card__year">
                     {% if lecture.year_start %}{{ lecture.year_start }}{% if lecture.year_end %}–{{ lecture.year_end }}{% endif %}{% else %}—{% endif %}
                   </div>

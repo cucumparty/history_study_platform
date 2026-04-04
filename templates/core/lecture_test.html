@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Тест: {{ lecture.title }} — Хроники России{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb" aria-label="Навигация">
+  <div class="container">
+    <a href="{% url 'core:home' %}">Главная</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:lecture_list' %}">Лекции</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:lecture_detail' lecture.slug %}">{{ lecture.title }}</a>
+    <span class="breadcrumb__sep">›</span>
+    <span>Тест</span>
+  </div>
+</nav>
+
+<header class="test-header">
+  <div class="container">
+    <span class="test-header__label">📝 Тест после лекции</span>
+    <h1 class="test-header__title">{{ lecture.title }}</h1>
+    <p class="test-header__sub">
+      {{ questions|length }} вопр{{ questions|length|pluralize:"ос,оса,осов" }} ·
+      Выберите один вариант ответа для каждого вопроса
+    </p>
+  </div>
+</header>
+
+<div class="test-body">
+  <div class="container container--narrow">
+
+    <form method="post" class="test-form" novalidate>
+      {% csrf_token %}
+
+      <!-- Non-field errors -->
+      {% if form.non_field_errors %}
+        <div class="form-errors">
+          {% for error in form.non_field_errors %}
+            <p class="form-error">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% for question in questions %}
+        {% with field=form|dictsort:"fields"|first field_name="question_"|add:question.pk|stringformat:"s" %}
+        {% endwith %}
+
+        <div class="test-question
+          {% if form.errors %}
+            {% with fname="question_"|add:question.pk|stringformat:"s" %}
+              {% if fname in form.errors %}test-question--error{% endif %}
+            {% endwith %}
+          {% endif %}
+          " id="q{{ forloop.counter }}">
+
+          <div class="test-question__number">{{ forloop.counter }}</div>
+          <h3 class="test-question__text">{{ question.text }}</h3>
+
+          <div class="test-options">
+            {% with fname="question_"|add:question.pk|stringformat:"s" %}
+              {% for letter, text in question.get_options %}
+                <label class="test-option" for="id_{{ fname }}_{{ letter }}">
+                  <input
+                    type="radio"
+                    name="{{ fname }}"
+                    id="id_{{ fname }}_{{ letter }}"
+                    value="{{ letter }}"
+                    class="test-option__radio"
+                    {% if form.data|get_item:fname == letter %}checked{% endif %}
+                  />
+                  <span class="test-option__letter">{{ letter }}</span>
+                  <span class="test-option__text">{{ text }}</span>
+                </label>
+              {% endfor %}
+
+              <!-- Field-level error -->
+              {% if form.errors %}
+                {% for err_field, err_list in form.errors.items %}
+                  {% if err_field == fname %}
+                    <p class="test-field-error">
+                      ⚠ {% for e in err_list %}{{ e }}{% endfor %}
+                    </p>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      {% endfor %}
+
+      <div class="test-submit">
+        <button type="submit" class="btn btn--primary btn--lg">
+          Проверить ответы
+        </button>
+        <a href="{% url 'core:lecture_detail' lecture.slug %}"
+           class="btn btn--ghost">← Вернуться к лекции</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Highlight selected radio visually
+  document.querySelectorAll('.test-option__radio').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const name = radio.name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+        r.closest('.test-option').classList.remove('test-option--selected');
+      });
+      radio.closest('.test-option').classList.add('test-option--selected');
+    });
+    // Restore on page reload (browser cache)
+    if (radio.checked) {
+      radio.closest('.test-option').classList.add('test-option--selected');
+    }
+  });
+</script>
+{% endblock %}

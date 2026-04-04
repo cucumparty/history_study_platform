@@ -23,7 +23,7 @@
     </button>
     <ul class="navbar__links" id="navLinks">
       <li><a href="{% url 'core:home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Главная</a></li>
-      <li><a href="#lectures-section" class="{% if 'lecture' in request.resolver_match.url_name|default:'' %}active{% endif %}">Лекции</a></li>
+      <li><a href="{% url 'core:lecture_list' %}" class="{% if 'lecture' in request.resolver_match.url_name|default:'' %}active{% endif %}">Лекции</a></li>
       <li><a href="#" class="{% if 'cards' in request.resolver_match.url_name|default:'' %}active{% endif %}">Карточки</a></li>
       <li><a href="#" class="{% if 'quiz' in request.resolver_match.url_name|default:'' %}active{% endif %}">Квиз</a></li>
       <li><a href="#" class="{% if 'facts' in request.resolver_match.url_name|default:'' %}active{% endif %}">Факты</a></li>

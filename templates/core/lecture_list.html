@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Лекции по истории России — Хроники России{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="container">
+    <p class="page-hero__eyebrow">{{ total }} лекци{{ total|pluralize:"я,и,й" }}</p>
+    <h1 class="page-hero__title">Все лекции</h1>
+    <p class="page-hero__sub">Выбери эпоху — читай, запоминай, проверяй себя</p>
+  </div>
+</section>
+
+<section class="llist-section">
+  <div class="container">
+
+    {% if eras %}
+      <!-- Era tabs -->
+      <div class="era-tabs" id="eraTabs">
+        <button class="era-tab era-tab--active" data-era="all">Все эпохи</button>
+        {% for era in eras %}
+          {% if era.lectures.all %}
+            <button class="era-tab" data-era="era-{{ era.pk }}"
+                    style="--tab-color: {{ era.color }};">
+              {{ era.name }}
+            </button>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% for era in eras %}
+        {% if era.lectures.all %}
+          <div class="llist-era era-group" id="era-{{ era.pk }}"
+               style="--era-color: {{ era.color }};">
+            <div class="llist-era__header">
+              <span class="llist-era__stripe"></span>
+              <div>
+                <h2 class="llist-era__name">{{ era.name }}</h2>
+                {% if era.description %}
+                  <p class="llist-era__desc">{{ era.description }}</p>
+                {% endif %}
+              </div>
+              <span class="llist-era__count">
+                {{ era.lectures.count }} лекци{{ era.lectures.count|pluralize:"я,и,й" }}
+              </span>
+            </div>
+
+            <div class="llist-grid">
+              {% for lecture in era.lectures.all %}
+                <a href="{% url 'core:lecture_detail' lecture.slug %}"
+                   class="llist-card">
+                  <div class="llist-card__top">
+                    {% if lecture.year_start %}
+                      <span class="llist-card__year">
+                        {{ lecture.year_start }}{% if lecture.year_end %} – {{ lecture.year_end }}{% endif %}
+                      </span>
+                    {% endif %}
+                    <span class="llist-card__badge"
+                          style="background: {{ era.color }};">{{ era.name }}</span>
+                  </div>
+                  <h3 class="llist-card__title">{{ lecture.title }}</h3>
+                  <p class="llist-card__desc">{{ lecture.short_description }}</p>
+                  <div class="llist-card__footer">
+                    {% with q_count=lecture.questions.count %}
+                      {% if q_count %}
+                        <span class="llist-card__meta">📝 Тест: {{ q_count }} вопр{{ q_count|pluralize:"ос,оса,осов" }}</span>
+                      {% endif %}
+                    {% endwith %}
+                    {% with c_count=lecture.cards.count %}
+                      {% if c_count %}
+                        <span class="llist-card__meta">🃏 {{ c_count }} карточк{{ c_count|pluralize:"а,и,ек" }}</span>
+                      {% endif %}
+                    {% endwith %}
+                    <span class="llist-card__arrow">Читать →</span>
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+    {% else %}
+      <div class="empty-state">
+        <p class="empty-state__icon">📚</p>
+        <p>Лекций пока нет. Добавь их через <a href="/admin/">панель администратора</a>.</p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Era tab filtering
+  const tabs = document.querySelectorAll('.era-tab');
+  const groups = document.querySelectorAll('.era-group');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('era-tab--active'));
+      tab.classList.add('era-tab--active');
+      const target = tab.dataset.era;
+      groups.forEach(g => {
+        if (target === 'all') {
+          g.style.display = '';
+        } else {
+          g.style.display = g.id === target ? '' : 'none';
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

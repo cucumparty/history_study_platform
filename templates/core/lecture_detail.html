@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ lecture.title }} — Хроники России{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav class="breadcrumb" aria-label="Навигация">
+  <div class="container">
+    <a href="{% url 'core:home' %}">Главная</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:lecture_list' %}">Лекции</a>
+    <span class="breadcrumb__sep">›</span>
+    <span>{{ lecture.title }}</span>
+  </div>
+</nav>
+
+<!-- Lecture header -->
+<header class="ldetail-header" style="--era-color: {{ lecture.era.color }};">
+  <div class="container">
+    <div class="ldetail-header__meta">
+      <span class="ldetail-header__era"
+            style="background: {{ lecture.era.color }};">{{ lecture.era.name }}</span>
+      {% if lecture.year_start %}
+        <span class="ldetail-header__years">
+          {{ lecture.year_start }}{% if lecture.year_end %} – {{ lecture.year_end }}{% endif %} г.
+        </span>
+      {% endif %}
+    </div>
+    <h1 class="ldetail-header__title">{{ lecture.title }}</h1>
+    <p class="ldetail-header__desc">{{ lecture.short_description }}</p>
+
+    {% if has_test %}
+      <div class="ldetail-header__hint">
+        📝 После лекции вас ждёт небольшой тест
+      </div>
+    {% endif %}
+  </div>
+</header>
+
+<!-- Progress bar (decorative) -->
+<div class="ldetail-progress" id="readingProgress">
+  <div class="ldetail-progress__bar" id="progressBar"></div>
+</div>
+
+<!-- Main content -->
+<div class="ldetail-body">
+  <div class="container">
+    <div class="ldetail-layout">
+
+      <!-- Article -->
+      <article class="ldetail-article" id="lectureArticle">
+        {% for paragraph in lecture.content.splitlines %}
+          {% if paragraph.strip %}
+            <p>{{ paragraph }}</p>
+          {% endif %}
+        {% endfor %}
+      </article>
+
+      <!-- Sidebar -->
+      <aside class="ldetail-sidebar">
+        <!-- Key dates from cards -->
+        {% if lecture.cards.all %}
+          <div class="sidebar-block">
+            <h3 class="sidebar-block__title">📌 Ключевые даты</h3>
+            <ul class="sidebar-dates">
+              {% for card in lecture.cards.all %}
+                <li class="sidebar-date">
+                  <span class="sidebar-date__front">{{ card.front }}</span>
+                  <span class="sidebar-date__back">{{ card.back }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <!-- Era info -->
+        <div class="sidebar-block sidebar-block--era"
+             style="border-color: {{ lecture.era.color }};">
+          <h3 class="sidebar-block__title">Эпоха</h3>
+          <p class="sidebar-block__era-name">{{ lecture.era.name }}</p>
+          {% if lecture.era.description %}
+            <p class="sidebar-block__era-desc">{{ lecture.era.description }}</p>
+          {% endif %}
+          <a href="{% url 'core:lecture_list' %}#era-{{ lecture.era.pk }}"
+             class="sidebar-block__link">Все лекции эпохи →</a>
+        </div>
+      </aside>
+
+    </div><!-- /layout -->
+
+    <!-- Test CTA -->
+    {% if has_test %}
+      <div class="ldetail-test-cta">
+        <div class="ldetail-test-cta__inner">
+          <div class="ldetail-test-cta__left">
+            <h2>Проверьте себя</h2>
+            <p>Пройдите короткий тест по этой лекции — {{ questions|length }}
+              вопр{{ questions|length|pluralize:"ос,оса,осов" }}, это займёт пару минут.</p>
+          </div>
+          <a href="{% url 'core:lecture_test' lecture.slug %}"
+             class="btn btn--primary btn--lg">Пройти тест</a>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Prev / Next navigation -->
+    <nav class="ldetail-nav">
+      <div class="ldetail-nav__side">
+        {% if prev_lecture %}
+          <a href="{% url 'core:lecture_detail' prev_lecture.slug %}"
+             class="ldetail-nav__btn ldetail-nav__btn--prev">
+            <span class="ldetail-nav__dir">← Предыдущая</span>
+            <span class="ldetail-nav__name">{{ prev_lecture.title }}</span>
+          </a>
+        {% endif %}
+      </div>
+      <a href="{% url 'core:lecture_list' %}" class="ldetail-nav__all">
+        Все лекции
+      </a>
+      <div class="ldetail-nav__side ldetail-nav__side--right">
+        {% if next_lecture %}
+          <a href="{% url 'core:lecture_detail' next_lecture.slug %}"
+             class="ldetail-nav__btn ldetail-nav__btn--next">
+            <span class="ldetail-nav__dir">Следующая →</span>
+            <span class="ldetail-nav__name">{{ next_lecture.title }}</span>
+          </a>
+        {% endif %}
+      </div>
+    </nav>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Reading progress bar
+  const bar = document.getElementById('progressBar');
+  const article = document.getElementById('lectureArticle');
+
+  if (bar && article) {
+    window.addEventListener('scroll', () => {
+      const rect = article.getBoundingClientRect();
+      const total = article.offsetHeight - window.innerHeight;
+      const scrolled = Math.max(0, -rect.top);
+      const pct = total > 0 ? Math.min(100, (scrolled / total) * 100) : 0;
+      bar.style.width = pct + '%';
+    });
+  }
+</script>
+{% endblock %}

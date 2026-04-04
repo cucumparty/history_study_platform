@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Результат теста — {{ lecture.title }} — Хроники России{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb" aria-label="Навигация">
+  <div class="container">
+    <a href="{% url 'core:home' %}">Главная</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:lecture_list' %}">Лекции</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:lecture_detail' lecture.slug %}">{{ lecture.title }}</a>
+    <span class="breadcrumb__sep">›</span>
+    <span>Результат</span>
+  </div>
+</nav>
+
+<!-- Score banner -->
+<div class="result-banner
+  {% if percent == 100 %}result-banner--perfect
+  {% elif percent >= 60 %}result-banner--good
+  {% else %}result-banner--retry{% endif %}">
+  <div class="container">
+    <div class="result-banner__inner">
+      <div class="result-banner__score">
+        <span class="result-banner__num">{{ score }}</span>
+        <span class="result-banner__denom">/ {{ total }}</span>
+      </div>
+      <div class="result-banner__text">
+        {% if percent == 100 %}
+          <h2>Отлично! Все верно 🏆</h2>
+          <p>Вы блестяще усвоили материал этой лекции.</p>
+        {% elif percent >= 60 %}
+          <h2>Хороший результат 👍</h2>
+          <p>{{ percent }}% правильных ответов. Почти отлично!</p>
+        {% else %}
+          <h2>Стоит повторить 📖</h2>
+          <p>{{ percent }}% правильных ответов. Перечитайте лекцию и попробуйте снова.</p>
+        {% endif %}
+      </div>
+      <!-- Circular progress -->
+      <div class="result-ring" style="--pct: {{ percent }};">
+        <svg viewBox="0 0 80 80" class="result-ring__svg">
+          <circle class="result-ring__track" cx="40" cy="40" r="34"/>
+          <circle class="result-ring__fill"  cx="40" cy="40" r="34"
+                  stroke-dasharray="213.6"
+                  stroke-dashoffset="{{ 213.6|add:"-"|add:percent|floatformat:0 }}"/>
+        </svg>
+        <span class="result-ring__label">{{ percent }}%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed answers -->
+<div class="result-body">
+  <div class="container container--narrow">
+    <h2 class="result-body__title">Разбор ответов</h2>
+
+    {% for item in results %}
+      <div class="result-item {% if item.is_correct %}result-item--correct{% else %}result-item--wrong{% endif %}">
+        <div class="result-item__header">
+          <span class="result-item__icon">{% if item.is_correct %}✓{% else %}✗{% endif %}</span>
+          <span class="result-item__num">Вопрос {{ forloop.counter }}</span>
+        </div>
+        <p class="result-item__question">{{ item.question.text }}</p>
+
+        <div class="result-item__answers">
+          {% for letter, text in item.question.get_options %}
+            <div class="result-answer
+              {% if letter == item.question.correct_option %}result-answer--correct{% endif %}
+              {% if letter == item.chosen and not item.is_correct %}result-answer--wrong{% endif %}
+            ">
+              <span class="result-answer__letter">{{ letter }}</span>
+              <span class="result-answer__text">{{ text }}</span>
+              {% if letter == item.question.correct_option %}
+                <span class="result-answer__tag result-answer__tag--correct">Верно</span>
+              {% endif %}
+              {% if letter == item.chosen and not item.is_correct %}
+                <span class="result-answer__tag result-answer__tag--wrong">Ваш ответ</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if item.question.explanation %}
+          <div class="result-item__explanation">
+            💡 {{ item.question.explanation }}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <!-- Actions -->
+    <div class="result-actions">
+      <a href="{% url 'core:lecture_test' lecture.slug %}"
+         class="btn btn--primary">Пройти тест снова</a>
+      <a href="{% url 'core:lecture_detail' lecture.slug %}"
+         class="btn btn--ghost">← К лекции</a>
+      <a href="{% url 'core:lecture_list' %}"
+         class="btn btn--ghost">Все лекции</a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
