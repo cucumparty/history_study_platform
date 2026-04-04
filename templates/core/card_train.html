@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Тренировка карточек — Хроники России{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+  <div class="container">
+    <a href="{% url 'core:home' %}">Главная</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:card_list' %}">Карточки</a>
+    <span class="breadcrumb__sep">›</span>
+    <span>Тренировка</span>
+  </div>
+</nav>
+
+<div class="train-page">
+  <div class="container">
+
+    <!-- Header -->
+    <div class="train-header">
+      <div class="train-header__left">
+        <h1 class="train-header__title">Тренировка</h1>
+        {% if selected_era %}
+          <span class="train-header__era"
+                style="background: {{ selected_era.color }};">{{ selected_era.name }}</span>
+        {% endif %}
+      </div>
+      <div class="train-header__right">
+        <span class="train-counter">
+          <span id="trainCurrent">1</span> / <span id="trainTotal">{{ total }}</span>
+        </span>
+        <a href="{% url 'core:card_list' %}{% if selected_era %}?era={{ selected_era.pk }}{% endif %}"
+           class="btn btn--ghost btn--sm">← К списку</a>
+      </div>
+    </div>
+
+    {% if total > 0 %}
+
+      <!-- Progress bar -->
+      <div class="train-progress">
+        <div class="train-progress__bar" id="trainProgressBar"
+             style="width: {{ 1|floatformat:0 }}%;"></div>
+      </div>
+
+      <!-- Flip card arena -->
+      <div class="train-arena">
+        <div class="train-flipcard" id="trainCard" tabindex="0"
+             role="button" aria-label="Нажмите, чтобы перевернуть карточку">
+          <div class="train-flipcard__inner" id="trainCardInner">
+            <div class="train-flipcard__front">
+              <span class="train-flipcard__side-label">Вопрос</span>
+              <p class="train-flipcard__text" id="trainFront"></p>
+              <span class="train-flipcard__hint-toggle"
+                    id="hintToggle" style="display:none;">
+                💡 Показать подсказку
+              </span>
+              <p class="train-flipcard__hint" id="trainHint" style="display:none;"></p>
+              <span class="train-flipcard__tap-tip">Нажмите, чтобы увидеть ответ</span>
+            </div>
+            <div class="train-flipcard__back">
+              <span class="train-flipcard__side-label">Ответ</span>
+              <p class="train-flipcard__text" id="trainBack"></p>
+              <p class="train-flipcard__meta" id="trainMeta"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="train-controls">
+        <button class="btn btn--ghost" id="btnPrev" disabled>← Назад</button>
+        <div class="train-controls__center">
+          <button class="btn btn--outline" id="btnShuffle">🔀 Перемешать</button>
+        </div>
+        <button class="btn btn--primary" id="btnNext">Вперёд →</button>
+      </div>
+
+      <!-- Done screen (hidden initially) -->
+      <div class="train-done" id="trainDone" style="display:none;">
+        <div class="train-done__inner">
+          <p class="train-done__emoji">🎉</p>
+          <h2>Все карточки пройдены!</h2>
+          <p>Отличная работа. Хочешь пройти ещё раз?</p>
+          <div class="train-done__actions">
+            <button class="btn btn--primary" id="btnRestart">Начать сначала</button>
+            <button class="btn btn--ghost" id="btnRestartShuffle">
+              🔀 Перемешать и начать
+            </button>
+            <a href="{% url 'core:card_list' %}" class="btn btn--ghost">К списку</a>
+          </div>
+        </div>
+      </div>
+
+    {% else %}
+      <div class="empty-state">
+        <p class="empty-state__icon">🃏</p>
+        <p>Нет карточек для тренировки.
+          <a href="{% url 'core:card_create' %}">Создайте первую</a>.
+        </p>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if total > 0 %}
+<script>
+  const RAW_CARDS = {{ cards_json|safe }};
+  let cards = [...RAW_CARDS];
+  let idx = 0;
+  let flipped = false;
+
+  const elFront    = document.getElementById('trainFront');
+  const elBack     = document.getElementById('trainBack');
+  const elMeta     = document.getElementById('trainMeta');
+  const elHint     = document.getElementById('trainHint');
+  const elHintBtn  = document.getElementById('hintToggle');
+  const elCard     = document.getElementById('trainCard');
+  const elInner    = document.getElementById('trainCardInner');
+  const elCurrent  = document.getElementById('trainCurrent');
+  const elTotal    = document.getElementById('trainTotal');
+  const elBar      = document.getElementById('trainProgressBar');
+  const btnPrev    = document.getElementById('btnPrev');
+  const btnNext    = document.getElementById('btnNext');
+  const btnShuffle = document.getElementById('btnShuffle');
+  const elDone     = document.getElementById('trainDone');
+  const elArena    = document.querySelector('.train-arena');
+  const elControls = document.querySelector('.train-controls');
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function renderCard() {
+    const c = cards[idx];
+    // Reset flip
+    flipped = false;
+    elInner.style.transform = 'rotateY(0deg)';
+    elCard.classList.remove('train-flipcard--flipped');
+
+    elFront.textContent = c.front;
+    elBack.textContent  = c.back;
+
+    const metaParts = [];
+    if (c.era)     metaParts.push(c.era);
+    if (c.lecture) metaParts.push(c.lecture);
+    elMeta.textContent = metaParts.join(' · ');
+
+    if (c.hint) {
+      elHintBtn.style.display = '';
+      elHint.textContent = c.hint;
+      elHint.style.display = 'none';
+      elHintBtn.textContent = '💡 Показать подсказку';
+    } else {
+      elHintBtn.style.display = 'none';
+      elHint.style.display    = 'none';
+    }
+
+    elCurrent.textContent = idx + 1;
+    const pct = Math.round(((idx + 1) / cards.length) * 100);
+    elBar.style.width = pct + '%';
+
+    btnPrev.disabled = idx === 0;
+  }
+
+  function flipCard() {
+    flipped = !flipped;
+    if (flipped) {
+      elInner.style.transform = 'rotateY(180deg)';
+      elCard.classList.add('train-flipcard--flipped');
+    } else {
+      elInner.style.transform = 'rotateY(0deg)';
+      elCard.classList.remove('train-flipcard--flipped');
+    }
+  }
+
+  function goNext() {
+    if (idx < cards.length - 1) {
+      idx++;
+      renderCard();
+    } else {
+      // Show done screen
+      elArena.style.display    = 'none';
+      elControls.style.display = 'none';
+      elDone.style.display     = '';
+    }
+  }
+
+  function goPrev() {
+    if (idx > 0) { idx--; renderCard(); }
+  }
+
+  function restart(doShuffle) {
+    if (doShuffle) cards = shuffle(cards);
+    idx = 0;
+    elDone.style.display     = 'none';
+    elArena.style.display    = '';
+    elControls.style.display = '';
+    renderCard();
+  }
+
+  // Events
+  elCard.addEventListener('click', flipCard);
+  elCard.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipCard(); }
+    if (e.key === 'ArrowRight') goNext();
+    if (e.key === 'ArrowLeft')  goPrev();
+  });
+  btnNext.addEventListener('click', goNext);
+  btnPrev.addEventListener('click', goPrev);
+  btnShuffle.addEventListener('click', () => { cards = shuffle(cards); idx = 0; renderCard(); });
+  document.getElementById('btnRestart').addEventListener('click', () => restart(false));
+  document.getElementById('btnRestartShuffle').addEventListener('click', () => restart(true));
+
+  elHintBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const shown = elHint.style.display !== 'none';
+    elHint.style.display = shown ? 'none' : '';
+    elHintBtn.textContent = shown ? '💡 Показать подсказку' : '💡 Скрыть подсказку';
+  });
+
+  // Keyboard arrows global
+  document.addEventListener('keydown', e => {
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowRight') goNext();
+    if (e.key === 'ArrowLeft')  goPrev();
+    if (e.key === ' ')          { e.preventDefault(); flipCard(); }
+  });
+
+  // Init
+  renderCard();
+</script>
+{% endif %}
+{% endblock %}

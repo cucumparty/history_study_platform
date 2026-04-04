@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Карточки для запоминания — Хроники России{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="container">
+    <p class="page-hero__eyebrow">{{ total }} карточк{{ total|pluralize:"а,и,ек" }}</p>
+    <h1 class="page-hero__title">Карточки</h1>
+    <p class="page-hero__sub">Даты, понятия, события — запомни через повторение</p>
+    <div class="page-hero__actions">
+      <a href="{% url 'core:card_train' %}{% if selected_era %}?era={{ selected_era.pk }}{% endif %}"
+         class="btn btn--primary">🃏 Режим тренировки</a>
+      <a href="{% url 'core:card_create' %}" class="btn btn--ghost">+ Создать карточку</a>
+    </div>
+  </div>
+</section>
+
+<section class="clist-section">
+  <div class="container">
+
+    <!-- Era filter -->
+    <div class="era-tabs">
+      <a href="{% url 'core:card_list' %}"
+         class="era-tab {% if not selected_era %}era-tab--active{% endif %}">
+        Все эпохи
+      </a>
+      {% for era in eras %}
+        <a href="{% url 'core:card_list' %}?era={{ era.pk }}"
+           class="era-tab {% if selected_era.pk == era.pk %}era-tab--active{% endif %}"
+           style="--tab-color: {{ era.color }};">
+          {{ era.name }}
+        </a>
+      {% endfor %}
+    </div>
+
+    {% if cards %}
+      <div class="clist-grid">
+        {% for card in cards %}
+          <div class="clist-card" data-id="{{ card.pk }}">
+            <div class="clist-card__face clist-card__face--front">
+              <span class="clist-card__label">Вопрос / Дата</span>
+              <p class="clist-card__text">{{ card.front }}</p>
+              {% if card.era %}
+                <span class="clist-card__era"
+                      style="background: {{ card.era.color }};">{{ card.era.name }}</span>
+              {% endif %}
+            </div>
+            <div class="clist-card__face clist-card__face--back">
+              <span class="clist-card__label">Ответ / Событие</span>
+              <p class="clist-card__text">{{ card.back }}</p>
+              {% if card.hint %}
+                <p class="clist-card__hint">💡 {{ card.hint }}</p>
+              {% endif %}
+            </div>
+            <button class="clist-card__flip-btn" aria-label="Перевернуть карточку">
+              Перевернуть ↺
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="clist-train-cta">
+        <a href="{% url 'core:card_train' %}{% if selected_era %}?era={{ selected_era.pk }}{% endif %}"
+           class="btn btn--primary btn--lg">
+          🃏 Тренироваться с этими карточками
+        </a>
+      </div>
+
+    {% else %}
+      <div class="empty-state">
+        <p class="empty-state__icon">🃏</p>
+        <p>Карточек пока нет.
+          <a href="{% url 'core:card_create' %}">Создайте первую</a>
+          или добавьте через <a href="/admin/">панель администратора</a>.
+        </p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.clist-card__flip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.clist-card').classList.toggle('clist-card--flipped');
+    });
+  });
+  // Also flip by clicking the card itself
+  document.querySelectorAll('.clist-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (!e.target.closest('.clist-card__flip-btn')) {
+        card.classList.toggle('clist-card--flipped');
+      }
+    });
+  });
+</script>
+{% endblock %}
