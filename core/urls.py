@@ -14,7 +14,6 @@ urlpatterns = [
     path("lectures/<slug:slug>/test/", views.lecture_test, name="lecture_test"),
     # Cards
     path("cards/", views.card_list, name="card_list"),
-    path("cards/create/", views.card_create, name="card_create"),
     path("cards/train/", views.card_train, name="card_train"),
     # Quiz
     path("quiz/", views.quiz_home, name="quiz_home"),

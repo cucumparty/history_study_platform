@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import CardCreateForm, LectureTestForm, QuizSettingsForm
+from .forms import LectureTestForm, QuizSettingsForm
 from .models import (
     Era, HistoryCard, HistoryFact, Lecture,
     QuizQuestion, TimelineEvent,
@@ -105,85 +105,50 @@ def card_list(request):
     """Show all flashcards, filterable by era."""
     eras = Era.objects.all()
     era_id = request.GET.get("era", "")
+    selected_era = None
     if era_id:
         try:
+            selected_era = Era.objects.filter(pk=int(era_id)).first()
             cards = HistoryCard.objects.filter(
                 era_id=int(era_id)
             ).select_related("era", "lecture")
-            active_era = Era.objects.filter(pk=int(era_id)).first()
         except (ValueError, TypeError):
             cards = HistoryCard.objects.select_related("era", "lecture").all()
-            active_era = None
     else:
         cards = HistoryCard.objects.select_related("era", "lecture").all()
-        active_era = None
-    era_choices = [(era.pk, era.name) for era in eras]
-    form = CardCreateForm(era_choices=era_choices)
+
     context = {
         "cards": cards,
         "eras": eras,
-        "active_era": active_era,
-        "era_id": era_id,
-        "form": form,
-        "total": HistoryCard.objects.count(),
+        "selected_era": selected_era,
     }
     return render(request, "core/card_list.html", context)
-
-
-def card_create(request):
-    """Handle POST: create a new flashcard."""
-    eras = Era.objects.all()
-    era_choices = [(era.pk, era.name) for era in eras]
-    if request.method == "POST":
-        form = CardCreateForm(request.POST, era_choices=era_choices)
-        if form.is_valid():
-            era_obj = get_object_or_404(Era, pk=form.cleaned_data["era"])
-            HistoryCard.objects.create(
-                front=form.cleaned_data["front"],
-                back=form.cleaned_data["back"],
-                hint=form.cleaned_data.get("hint", ""),
-                era=era_obj,
-            )
-            messages.success(
-                request,
-                f"Карточка «{form.cleaned_data['front']}» успешно добавлена!"
-            )
-            return redirect("core:card_list")
-        cards = HistoryCard.objects.select_related("era", "lecture").all()
-        context = {
-            "cards": cards, "eras": eras, "active_era": None,
-            "era_id": "", "form": form,
-            "total": HistoryCard.objects.count(), "show_form": True,
-        }
-        return render(request, "core/card_list.html", context)
-    return redirect("core:card_list")
 
 
 def card_train(request):
     """Flashcard training mode — one card at a time."""
     eras = Era.objects.all()
     era_id = request.GET.get("era", "")
+    selected_era = None
     if era_id:
         try:
+            selected_era = Era.objects.filter(pk=int(era_id)).first()
             cards = list(
                 HistoryCard.objects.filter(
                     era_id=int(era_id)
                 ).select_related("era")
             )
-            active_era = Era.objects.filter(pk=int(era_id)).first()
         except (ValueError, TypeError):
             cards = list(HistoryCard.objects.select_related("era").all())
-            active_era = None
     else:
         cards = list(HistoryCard.objects.select_related("era").all())
-        active_era = None
+
     random.shuffle(cards)
     context = {
         "cards": cards,
         "cards_json": _cards_to_json(cards),
         "eras": eras,
-        "active_era": active_era,
-        "era_id": era_id,
+        "selected_era": selected_era,
         "total": len(cards),
     }
     return render(request, "core/card_train.html", context)
@@ -301,27 +266,25 @@ def fact_list(request):
     """Page with all interesting historical facts, filterable by era."""
     eras = Era.objects.all()
     era_id = request.GET.get("era", "")
+    selected_era = None
     if era_id:
         try:
+            selected_era = Era.objects.filter(pk=int(era_id)).first()
             facts = HistoryFact.objects.filter(
                 era_id=int(era_id)
             ).select_related("era").order_by("-is_featured", "year")
-            active_era = Era.objects.filter(pk=int(era_id)).first()
         except (ValueError, TypeError):
             facts = HistoryFact.objects.select_related("era").order_by(
                 "-is_featured", "year"
             )
-            active_era = None
     else:
         facts = HistoryFact.objects.select_related("era").order_by(
             "-is_featured", "year"
         )
-        active_era = None
     context = {
         "facts": facts,
         "eras": eras,
-        "active_era": active_era,
-        "era_id": era_id,
+        "selected_era": selected_era,
         "total": HistoryFact.objects.count(),
     }
     return render(request, "core/fact_list.html", context)
@@ -330,58 +293,61 @@ def fact_list(request):
 # ─── TIMELINE ─────────────────────────────────────────────────────────────────
 
 def timeline(request):
-    """Parallel timeline comparison: Russia vs the world."""
-    try:
-        year_from = int(request.GET.get("from", 800))
-    except (ValueError, TypeError):
-        year_from = 800
-    try:
-        year_to = int(request.GET.get("to", 2000))
-    except (ValueError, TypeError):
-        year_to = 2000
-    if year_from > year_to:
-        year_from, year_to = year_to, year_from
+    """Parallel timeline: Russia on the left, the world on the right."""
+    eras = Era.objects.all()
+    era_id = request.GET.get("era", "")
+    selected_era = None
 
-    all_events = (
-        TimelineEvent.objects
-        .filter(year__gte=year_from, year__lte=year_to)
-        .select_related("era")
-        .order_by("year")
-    )
+    events_qs = TimelineEvent.objects.select_related("era").order_by("year")
+    if era_id:
+        try:
+            selected_era = Era.objects.filter(pk=int(era_id)).first()
+            events_qs = events_qs.filter(era_id=int(era_id))
+        except (ValueError, TypeError):
+            pass
 
-    regions_order = ["russia", "europe", "asia", "america", "middle_east", "other"]
-    region_labels = dict(TimelineEvent.REGION_CHOICES)
-    events_by_region = _group_by_region(all_events, regions_order, region_labels)
+    all_events = list(events_qs)
+    russia_events = [e for e in all_events if e.region == "russia"]
+    world_events = [e for e in all_events if e.region != "russia"]
+
     all_years = sorted({e.year for e in all_events})
+    year_groups = []
+    for year in all_years:
+        rus = [e for e in russia_events if e.year == year]
+        wld = [e for e in world_events if e.year == year]
+        if rus or wld:
+            year_groups.append({"year": year, "russia": rus, "world": wld})
 
-    era_presets = [
-        {"label": "Древняя Русь",      "from": 800,  "to": 1300},
-        {"label": "Моск. царство",     "from": 1300, "to": 1600},
-        {"label": "Романовы",          "from": 1600, "to": 1800},
-        {"label": "Рос. империя",      "from": 1800, "to": 1917},
-        {"label": "XX век",            "from": 1917, "to": 2000},
-        {"label": "Всё время",         "from": 800,  "to": 2000},
-    ]
+    region_labels = dict(TimelineEvent.REGION_CHOICES)
+    era_presets = _build_era_presets()
 
     context = {
-        "events_by_region": events_by_region,
-        "all_years": all_years,
-        "year_from": year_from,
-        "year_to": year_to,
-        "total_events": all_events.count(),
+        "eras": eras,
+        "selected_era": selected_era,
+        "era_id": era_id,
+        "year_groups": year_groups,
+        "russia_count": len(russia_events),
+        "world_count": len(world_events),
+        "total_years": len(all_years),
+        "region_labels": region_labels,
         "era_presets": era_presets,
     }
     return render(request, "core/timeline.html", context)
 
 
-def _group_by_region(events, regions_order, region_labels):
-    """Group a queryset of TimelineEvents into an ordered dict by region."""
-    result = {}
-    for region in regions_order:
-        evts = [e for e in events if e.region == region]
-        if evts:
-            result[region] = {
-                "label": region_labels.get(region, region),
-                "events": evts,
-            }
-    return result
+def _build_era_presets():
+    """Return era preset list for the timeline page."""
+    names = [
+        ("Древняя Русь",      "Древняя Русь"),
+        ("Моск. царство",     "Московское царство"),
+        ("Романовы",          "Романовы: начало"),
+        ("Рос. империя",      "Российская империя"),
+        ("XX век",            "XX век"),
+    ]
+    presets = []
+    for label, era_name in names:
+        pk = Era.objects.filter(
+            name=era_name
+        ).values_list("pk", flat=True).first()
+        presets.append({"label": label, "pk": pk})
+    return presets

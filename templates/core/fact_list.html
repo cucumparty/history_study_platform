@@ -19,13 +19,13 @@
     <!-- Era filter -->
     <div class="card-filters">
       <a href="{% url 'core:fact_list' %}"
-         class="era-tab {% if not active_era %}era-tab--active{% endif %}">
+         class="era-tab {% if not selected_era %}era-tab--active{% endif %}">
         Все эпохи
       </a>
       {% for era in eras %}
         {% if era.facts.count %}
           <a href="{% url 'core:fact_list' %}?era={{ era.pk }}"
-             class="era-tab {% if active_era.pk == era.pk %}era-tab--active{% endif %}"
+             class="era-tab {% if selected_era.pk == era.pk %}era-tab--active{% endif %}"
              style="--tab-color: {{ era.color }};">
             {{ era.name }}
           </a>

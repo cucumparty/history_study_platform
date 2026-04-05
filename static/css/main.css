@@ -1901,6 +1901,7 @@ img { max-width: 100%; }
 }
 
 /* ---------- CARD LIST ---------- */
+/* ── CARD LIST ── */
 .clist-section { padding: 48px 0 96px; }
 
 .clist-grid {
@@ -1910,113 +1911,123 @@ img { max-width: 100%; }
   margin-bottom: 48px;
 }
 
-/* Flip card (browse mode) */
 .clist-card {
   height: 220px;
   perspective: 1000px;
   cursor: pointer;
+  outline: none;
+  border-radius: var(--radius);
+}
+.clist-card:focus-visible {
+  box-shadow: 0 0 0 3px var(--clr-gold);
+}
+
+.clist-card__inner {
   position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .5s cubic-bezier(.4,0,.2,1);
+}
+.clist-card--flipped .clist-card__inner {
+  transform: rotateY(180deg);
 }
 
 .clist-card__face {
   position: absolute;
   inset: 0;
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transition: transform .55s cubic-bezier(.4,.2,.2,1);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--clr-border);
+  transition: box-shadow .2s;
 }
+.clist-card:hover .clist-card__face { box-shadow: var(--shadow-md); }
 
 .clist-card__face--front {
   background: var(--clr-parchment);
-  transform: rotateY(0deg);
 }
 .clist-card__face--back {
   background: var(--clr-ink);
   transform: rotateY(180deg);
+  border-color: var(--clr-gold);
 }
 
-.clist-card--flipped .clist-card__face--front {
-  transform: rotateY(-180deg);
-}
-.clist-card--flipped .clist-card__face--back {
-  transform: rotateY(0deg);
-}
-
-.clist-card__label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--clr-gold);
-}
-
-.clist-card__text {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.35;
-  flex: 1;
-  color: var(--clr-ink);
-}
-.clist-card__face--back .clist-card__text {
-  color: var(--clr-parchment);
-  font-size: 15px;
-  font-weight: 400;
-  font-family: var(--font-body);
-}
-
-.clist-card__hint {
-  font-size: 12px;
-  color: rgba(245,239,224,.6);
-  font-style: italic;
-  margin-top: auto;
-}
-
-.clist-card__era {
-  display: inline-block;
+.clist-card__era-badge {
+  align-self: flex-start;
   font-family: var(--font-mono);
   font-size: 10px;
   color: #fff;
   padding: 2px 10px;
   border-radius: 100px;
   letter-spacing: .05em;
-  margin-top: auto;
-  align-self: flex-start;
+  opacity: .85;
 }
-
-.clist-card__flip-btn {
-  position: absolute;
-  bottom: -36px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: none;
-  border: 1px solid var(--clr-border);
-  border-radius: 100px;
+.clist-card__side-label {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--clr-ink-soft);
-  padding: 4px 14px;
-  cursor: pointer;
-  transition: all .2s;
-  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--clr-gold);
 }
-.clist-card__flip-btn:hover {
-  border-color: var(--clr-gold);
-  color: var(--clr-ink);
+.clist-card__side-label--back { color: rgba(200,150,30,.7); }
+
+.clist-card__text {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--clr-ink-soft);
+  flex: 1;
+}
+.clist-card__text--date {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--clr-parchment);
+  line-height: 1.2;
+}
+.clist-card__tap-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--clr-ink-soft);
+  opacity: .5;
+  letter-spacing: .04em;
+  align-self: flex-end;
+}
+.clist-card__hint {
+  font-size: 12px;
+  color: rgba(245,239,224,.6);
+  font-style: italic;
 }
 
 .clist-train-cta {
-  text-align: center;
-  padding: 32px 0 0;
-  border-top: 1px solid var(--clr-border);
-  margin-top: 60px;
+  background: var(--clr-ink);
+  border: 2px solid var(--clr-gold);
+  border-radius: var(--radius);
+  padding: 28px 36px;
+}
+.clist-train-cta__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.clist-train-cta h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--clr-parchment);
+  margin-bottom: 4px;
+}
+.clist-train-cta p {
+  font-size: 14px;
+  color: rgba(245,239,224,.65);
 }
 
 /* ---------- CARD TRAINING ---------- */

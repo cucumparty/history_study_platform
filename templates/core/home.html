@@ -13,12 +13,12 @@
     <h1 class="hero__title">История<br><em>России</em></h1>
     <p class="hero__subtitle">
       Интерактивные лекции, карточки для запоминания,
-      квизы и параллельные таймлайны — всё для тех,
+      квизы и параллельный таймлайн — всё для тех,
       кто хочет разобраться в истории без скуки.
     </p>
     <div class="hero__actions">
-      <a href="#lectures-section" class="btn btn--primary">Начать учиться</a>
-      <a href="{% url 'core:about' %}" class="btn btn--ghost">Узнать больше</a>
+      <a href="{% url 'core:lecture_list' %}" class="btn btn--primary">Начать учиться</a>
+      <a href="{% url 'core:about' %}" class="btn btn--ghost">О проекте</a>
     </div>
     <div class="hero__stats">
       <div class="hero__stat">
@@ -27,7 +27,7 @@
       </div>
       <div class="hero__stat">
         <span class="hero__stat-num">5</span>
-        <span class="hero__stat-label">разделов</span>
+        <span class="hero__stat-label">эпох</span>
       </div>
       <div class="hero__stat">
         <span class="hero__stat-num">∞</span>
@@ -35,9 +35,7 @@
       </div>
     </div>
   </div>
-  <div class="hero__scroll-hint">
-    <span>↓</span>
-  </div>
+  <div class="hero__scroll-hint"><span>↓</span></div>
 </section>
 
 <!-- FEATURES -->
@@ -54,26 +52,26 @@
       <div class="feature-card feature-card--cards">
         <div class="feature-card__icon">🃏</div>
         <h3>Карточки</h3>
-        <p>Anki-подобные флипкарточки: дата или понятие на одной стороне, событие — на другой.</p>
-        <a href="#" class="feature-card__link">Скоро →</a>
+        <p>Увидишь событие — вспоминай дату. Перевори карточку и проверь себя. Режим тренировки считает прогресс.</p>
+        <a href="{% url 'core:card_list' %}" class="feature-card__link">Перейти →</a>
       </div>
       <div class="feature-card feature-card--quiz">
         <div class="feature-card__icon">🏆</div>
         <h3>Квиз</h3>
-        <p>Проверь себя по любой теме. Выбирай эпоху, отвечай на вопросы, следи за прогрессом.</p>
-        <a href="#" class="feature-card__link">Скоро →</a>
+        <p>Выбери эпоху и количество вопросов. Отвечай, следи за результатом, читай объяснения.</p>
+        <a href="{% url 'core:quiz_home' %}" class="feature-card__link">Перейти →</a>
       </div>
       <div class="feature-card feature-card--facts">
         <div class="feature-card__icon">💡</div>
         <h3>Факты</h3>
         <p>Неожиданные и малоизвестные факты, которые не вошли в учебники.</p>
-        <a href="#" class="feature-card__link">Скоро →</a>
+        <a href="{% url 'core:fact_list' %}" class="feature-card__link">Перейти →</a>
       </div>
       <div class="feature-card feature-card--timeline">
         <div class="feature-card__icon">🌍</div>
         <h3>Таймлайн</h3>
-        <p>Что происходило в одно время в России и в других странах — параллельное сравнение.</p>
-        <a href="#" class="feature-card__link">Скоро →</a>
+        <p>Что происходило в России и в мире одновременно — параллельное сравнение по эпохам.</p>
+        <a href="{% url 'core:timeline' %}" class="feature-card__link">Перейти →</a>
       </div>
     </div>
   </div>
@@ -98,7 +96,7 @@
               {% for lecture in era.lectures.all %}
                 <a href="{% url 'core:lecture_detail' lecture.slug %}" class="lecture-card">
                   <div class="lecture-card__year">
-                    {% if lecture.year_start %}{{ lecture.year_start }}{% if lecture.year_end %}–{{ lecture.year_end }}{% endif %}{% else %}—{% endif %}
+                    {% if lecture.year_start %}{{ lecture.year_start }}{% if lecture.year_end %} – {{ lecture.year_end }}{% endif %}{% else %}—{% endif %}
                   </div>
                   <h4 class="lecture-card__title">{{ lecture.title }}</h4>
                   <p class="lecture-card__desc">{{ lecture.short_description|truncatechars:100 }}</p>
@@ -107,14 +105,14 @@
               {% endfor %}
             </div>
           {% else %}
-            <p class="era-block__empty">Лекции по этой эпохе скоро появятся.</p>
+            <p class="era-block__empty">Лекции по этой эпохе пока не добавлены.</p>
           {% endif %}
         </div>
       {% endfor %}
     {% else %}
       <div class="empty-state">
         <p class="empty-state__icon">📚</p>
-        <p>Лекции ещё не добавлены. Загляни в <a href="/admin/">панель администратора</a> и добавь первую.</p>
+        <p>Лекции ещё не добавлены. Загляни в <a href="/admin/">панель администратора</a>.</p>
       </div>
     {% endif %}
   </div>
@@ -133,6 +131,9 @@
           <p>{{ fact.content|truncatechars:180 }}</p>
         </div>
       {% endfor %}
+    </div>
+    <div style="text-align:center; margin-top:32px;">
+      <a href="{% url 'core:fact_list' %}" class="btn btn--ghost">Все факты →</a>
     </div>
   </div>
 </section>
