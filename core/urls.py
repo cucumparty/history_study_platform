@@ -19,4 +19,7 @@ urlpatterns = [
     # Quiz
     path("quiz/", views.quiz_home, name="quiz_home"),
     path("quiz/play/", views.quiz_play, name="quiz_play"),
+    # Facts & Timeline
+    path("facts/", views.fact_list, name="fact_list"),
+    path("timeline/", views.timeline, name="timeline"),
 ]
