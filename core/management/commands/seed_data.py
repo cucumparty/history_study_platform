@@ -18,6 +18,8 @@ class Command(BaseCommand):
         self._create_facts()
         self.stdout.write("Создаём таймлайн...")
         self._create_timeline()
+        self.stdout.write("Добавляем вопросы для квиза...")
+        self.add_extra_quiz_questions()
         self.stdout.write(self.style.SUCCESS("Готово! База данных заполнена."))
 
     def _create_eras(self):
@@ -378,4 +380,114 @@ class Command(BaseCommand):
                 title=title,
                 year=year,
                 defaults={"region": region},
+            )
+
+    def add_extra_quiz_questions(self):
+        """Add standalone quiz questions (not tied to specific lectures)."""
+        extra = [
+            {
+                "slug": "ryurikovichi",
+                "text": "Кто перенёс столицу в Киев и объединил север и юг Руси?",
+                "option_a": "Рюрик",
+                "option_b": "Аскольд",
+                "option_c": "Олег",
+                "option_d": "Игорь",
+                "correct_option": "C",
+                "explanation": (
+                    "Олег захватил Киев в 882 году, убив Аскольда и Дира, "
+                    "и объединил Новгород и Киев в единое государство."
+                ),
+            },
+            {
+                "slug": "kreshchenie-rusi",
+                "text": (
+                    "Какой собор поразил послов Владимира "
+                    "своей красотой в Константинополе?"
+                ),
+                "option_a": "Собор Святого Петра",
+                "option_b": "Храм Гроба Господня",
+                "option_c": "Собор Святой Софии",
+                "option_d": "Базилика Сан-Марко",
+                "correct_option": "C",
+                "explanation": (
+                    "Послы Владимира побывали в Константинополе "
+                    "и были потрясены красотой собора Святой Софии."
+                ),
+            },
+            {
+                "slug": "ivan-grozny",
+                "text": "В каком году Иван Грозный взял Казанское ханство?",
+                "option_a": "1547",
+                "option_b": "1552",
+                "option_c": "1558",
+                "option_d": "1565",
+                "correct_option": "B",
+                "explanation": (
+                    "В 1552 году после долгой осады русские войска "
+                    "взяли Казань, присоединив Казанское ханство."
+                ),
+            },
+            {
+                "slug": "pyotr-pervyy",
+                "text": "Как назывался главный шведский военачальник, разбитый под Полтавой?",
+                "option_a": "Карл XI",
+                "option_b": "Карл XII",
+                "option_c": "Густав III",
+                "option_d": "Фридрих Великий",
+                "correct_option": "B",
+                "explanation": (
+                    "Карл XII — шведский король, чья армия была "
+                    "разгромлена Петром I в Полтавской битве 1709 года."
+                ),
+            },
+            {
+                "slug": "voyna-1812",
+                "text": "В каком месяце 1812 года Наполеон покинул Москву?",
+                "option_a": "Август",
+                "option_b": "Сентябрь",
+                "option_c": "Октябрь",
+                "option_d": "Ноябрь",
+                "correct_option": "C",
+                "explanation": (
+                    "Наполеон вошёл в Москву в сентябре, "
+                    "а покинул её в октябре 1812 года, ожидая мира целый месяц."
+                ),
+            },
+            {
+                "slug": "revolyutsiya-1917",
+                "text": (
+                    "Как называлось временное правительство, "
+                    "пришедшее к власти после февраля 1917-го?"
+                ),
+                "option_a": "Учредительное собрание",
+                "option_b": "Временное правительство",
+                "option_c": "Совет народных комиссаров",
+                "option_d": "Государственная дума",
+                "correct_option": "B",
+                "explanation": (
+                    "После отречения Николая II власть перешла "
+                    "к Временному правительству, которое существовало "
+                    "до Октябрьской революции."
+                ),
+            },
+        ]
+
+        for item in extra:
+            try:
+                lecture = Lecture.objects.get(slug=item["slug"])
+            except Lecture.DoesNotExist:
+                continue
+            QuizQuestion.objects.get_or_create(
+                text=item["text"],
+                lecture=lecture,
+                defaults={
+                    "question_type": "quiz",
+                    "option_a": item["option_a"],
+                    "option_b": item["option_b"],
+                    "option_c": item["option_c"],
+                    "option_d": item["option_d"],
+                    "correct_option": item["correct_option"],
+                    "explanation": item["explanation"],
+                    "order": 10,
+                },
             )

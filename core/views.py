@@ -1,11 +1,16 @@
 """Views for the history learning application."""
 
-from django.shortcuts import render, get_object_or_404, redirect
+import random
+
 from django.contrib import messages
 from django.http import Http404
-from .models import Era, Lecture, HistoryFact, HistoryCard
-from .forms import LectureTestForm, CardCreateForm
+from django.shortcuts import get_object_or_404, redirect, render
 
+from .forms import CardCreateForm, LectureTestForm, QuizSettingsForm
+from .models import Era, HistoryCard, HistoryFact, Lecture, QuizQuestion
+
+
+# ─── HOME & ABOUT ─────────────────────────────────────────────────────────────
 
 def home(request):
     """Main landing page."""
@@ -25,7 +30,7 @@ def about(request):
     return render(request, "core/about.html")
 
 
-# ── Lectures ────────────────────────────────────────────────────────────────
+# ─── LECTURES ─────────────────────────────────────────────────────────────────
 
 def lecture_list(request):
     """List of all lectures grouped by era."""
@@ -52,9 +57,7 @@ def lecture_detail(request, slug):
         idx = 0
 
     prev_lecture = all_lectures[idx - 1] if idx > 0 else None
-    next_lecture = (
-        all_lectures[idx + 1] if idx < len(all_lectures) - 1 else None
-    )
+    next_lecture = all_lectures[idx + 1] if idx < len(all_lectures) - 1 else None
 
     context = {
         "lecture": lecture,
@@ -97,63 +100,112 @@ def lecture_test(request, slug):
     return render(request, "core/lecture_test.html", context)
 
 
-# ── Cards ────────────────────────────────────────────────────────────────────
+# ─── CARDS ────────────────────────────────────────────────────────────────────
 
 def card_list(request):
-    """Browse all flashcards, optionally filtered by era."""
+    """Show all flashcards, filterable by era."""
     eras = Era.objects.all()
-    era_id = request.GET.get("era")
-    selected_era = None
+    era_id = request.GET.get("era", "")
 
-    cards = HistoryCard.objects.select_related("era", "lecture").order_by(
-        "era__order", "-created_at"
-    )
     if era_id:
         try:
-            selected_era = Era.objects.get(pk=int(era_id))
-            cards = cards.filter(era=selected_era)
-        except (Era.DoesNotExist, ValueError):
-            pass
+            cards = HistoryCard.objects.filter(
+                era_id=int(era_id)
+            ).select_related("era", "lecture")
+            active_era = Era.objects.filter(pk=int(era_id)).first()
+        except (ValueError, TypeError):
+            cards = HistoryCard.objects.select_related("era", "lecture").all()
+            active_era = None
+    else:
+        cards = HistoryCard.objects.select_related("era", "lecture").all()
+        active_era = None
 
-    total = cards.count()
+    era_choices = [(era.pk, era.name) for era in eras]
+    form = CardCreateForm(era_choices=era_choices)
+
     context = {
         "cards": cards,
         "eras": eras,
-        "selected_era": selected_era,
-        "total": total,
+        "active_era": active_era,
+        "era_id": era_id,
+        "form": form,
+        "total": HistoryCard.objects.count(),
     }
     return render(request, "core/card_list.html", context)
 
 
-def card_train(request):
-    """Flashcard training mode — flip cards one by one."""
+def card_create(request):
+    """Handle POST: create a new flashcard."""
     eras = Era.objects.all()
-    era_id = request.GET.get("era")
-    selected_era = None
+    era_choices = [(era.pk, era.name) for era in eras]
 
-    cards = HistoryCard.objects.select_related("era", "lecture").order_by(
-        "era__order", "created_at"
-    )
+    if request.method == "POST":
+        form = CardCreateForm(request.POST, era_choices=era_choices)
+        if form.is_valid():
+            era_obj = get_object_or_404(Era, pk=form.cleaned_data["era"])
+            HistoryCard.objects.create(
+                front=form.cleaned_data["front"],
+                back=form.cleaned_data["back"],
+                hint=form.cleaned_data.get("hint", ""),
+                era=era_obj,
+            )
+            messages.success(
+                request,
+                f"Карточка «{form.cleaned_data['front']}» успешно добавлена!"
+            )
+            return redirect("core:card_list")
+
+        cards = HistoryCard.objects.select_related("era", "lecture").all()
+        context = {
+            "cards": cards,
+            "eras": eras,
+            "active_era": None,
+            "era_id": "",
+            "form": form,
+            "total": HistoryCard.objects.count(),
+            "show_form": True,
+        }
+        return render(request, "core/card_list.html", context)
+
+    return redirect("core:card_list")
+
+
+def card_train(request):
+    """Flashcard training mode — one card at a time."""
+    eras = Era.objects.all()
+    era_id = request.GET.get("era", "")
+
     if era_id:
         try:
-            selected_era = Era.objects.get(pk=int(era_id))
-            cards = cards.filter(era=selected_era)
-        except (Era.DoesNotExist, ValueError):
-            pass
+            cards = list(
+                HistoryCard.objects.filter(
+                    era_id=int(era_id)
+                ).select_related("era")
+            )
+            active_era = Era.objects.filter(pk=int(era_id)).first()
+        except (ValueError, TypeError):
+            cards = list(HistoryCard.objects.select_related("era").all())
+            active_era = None
+    else:
+        cards = list(HistoryCard.objects.select_related("era").all())
+        active_era = None
 
-    cards_list = list(cards)
+    random.shuffle(cards)
+
     context = {
-        "cards_json": _cards_to_json(cards_list),
+        "cards": cards,
+        "cards_json": _cards_to_json(cards),
         "eras": eras,
-        "selected_era": selected_era,
-        "total": len(cards_list),
+        "active_era": active_era,
+        "era_id": era_id,
+        "total": len(cards),
     }
     return render(request, "core/card_train.html", context)
 
 
 def _cards_to_json(cards):
-    """Serialize a list of HistoryCard objects to a JSON-safe list."""
-    import json  # pylint: disable=import-outside-toplevel
+    """Serialize cards to a JSON-safe list for JS."""
+    import json  # noqa: PLC0415
     data = [
         {
             "id": c.pk,
@@ -161,26 +213,120 @@ def _cards_to_json(cards):
             "back": c.back,
             "hint": c.hint,
             "era": c.era.name if c.era else "",
-            "lecture": c.lecture.title if c.lecture else "",
         }
         for c in cards
     ]
     return json.dumps(data, ensure_ascii=False)
 
 
-def card_create(request):
-    """Form to create a new flashcard."""
-    if request.method == "POST":
-        form = CardCreateForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(
-                request,
-                "Карточка успешно создана! Можно добавить ещё одну.",
-            )
-            return redirect("core:card_create")
-    else:
-        form = CardCreateForm()
+# ─── QUIZ ─────────────────────────────────────────────────────────────────────
 
-    context = {"form": form}
-    return render(request, "core/card_create.html", context)
+def quiz_home(request):
+    """Quiz start page — choose era and question count."""
+    eras = Era.objects.all()
+    era_choices = [(era.pk, era.name) for era in eras]
+
+    if request.method == "POST":
+        form = QuizSettingsForm(request.POST, era_choices=era_choices)
+        if form.is_valid():
+            era_val = form.cleaned_data["era"]
+            count = form.cleaned_data["count"]
+            url = f"/quiz/play/?count={count}"
+            if era_val != "all":
+                url += f"&era={era_val}"
+            return redirect(url)
+    else:
+        form = QuizSettingsForm(era_choices=era_choices)
+
+    era_stats = []
+    for era in eras:
+        q_count = QuizQuestion.objects.filter(lecture__era=era).count()
+        era_stats.append({"era": era, "q_count": q_count})
+
+    total_q = QuizQuestion.objects.count()
+    context = {
+        "form": form,
+        "era_stats": era_stats,
+        "total_q": total_q,
+    }
+    return render(request, "core/quiz_home.html", context)
+
+
+def quiz_play(request):
+    """Active quiz session — questions one by one, result at end."""
+    eras = Era.objects.all()
+    era_id = request.GET.get("era", "")
+    count = request.GET.get("count", "5")
+
+    try:
+        count = int(count)
+        if count not in (3, 5, 10):
+            count = 5
+    except (ValueError, TypeError):
+        count = 5
+
+    qs_filter = QuizQuestion.objects.select_related("lecture__era")
+    if era_id:
+        try:
+            qs_filter = qs_filter.filter(lecture__era_id=int(era_id))
+        except (ValueError, TypeError):
+            pass
+
+    pool = list(qs_filter)
+    if not pool:
+        messages.error(
+            request,
+            "По выбранной теме нет вопросов. Попробуйте другую эпоху."
+        )
+        return redirect("core:quiz_home")
+
+    random.shuffle(pool)
+    questions = pool[:count]
+
+    if request.method == "POST":
+        results = []
+        score = 0
+        for question in questions:
+            chosen = request.POST.get(f"q_{question.pk}", "")
+            is_correct = chosen == question.correct_option
+            if is_correct:
+                score += 1
+            results.append({
+                "question": question,
+                "chosen": chosen,
+                "is_correct": is_correct,
+                "options": question.get_options(),
+            })
+
+        q_ids = request.POST.get("question_ids", "")
+        if q_ids:
+            try:
+                id_list = [int(x) for x in q_ids.split(",") if x.strip()]
+                ordered = {q.pk: q for q in questions}
+                questions = [ordered[pk] for pk in id_list if pk in ordered]
+            except (ValueError, AttributeError):
+                pass
+
+        total = len(results)
+        percent = int(score / total * 100) if total else 0
+        context = {
+            "results": results,
+            "score": score,
+            "total": total,
+            "percent": percent,
+            "era_id": era_id,
+            "count": count,
+            "eras": eras,
+        }
+        return render(request, "core/quiz_result.html", context)
+
+    question_ids = ",".join(str(q.pk) for q in questions)
+    context = {
+        "questions": questions,
+        "question_ids": question_ids,
+        "total": len(questions),
+        "era_id": era_id,
+        "count": count,
+        "eras": eras,
+    }
+    return render(request, "core/quiz_play.html", context)

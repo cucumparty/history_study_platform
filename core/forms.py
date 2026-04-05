@@ -1,7 +1,6 @@
 """Forms for the history learning application."""
 
 from django import forms
-from .models import HistoryCard, Era, Lecture
 
 
 class LectureTestForm(forms.Form):
@@ -44,77 +43,151 @@ class LectureTestForm(forms.Form):
         return results
 
 
-class CardCreateForm(forms.ModelForm):
-    """Form for creating a new flashcard."""
+class CardCreateForm(forms.Form):
+    """Form for creating a new history flashcard."""
 
-    era = forms.ModelChoiceField(
-        queryset=Era.objects.all(),
+    ERA_CHOICES_PLACEHOLDER = [("", "— Выберите эпоху —")]
+
+    front = forms.CharField(
+        label="Лицевая сторона",
+        max_length=400,
+        widget=forms.TextInput(attrs={
+            "class": "form-input",
+            "placeholder": "Дата или вопрос — например: «1703 год»",
+        }),
+        error_messages={
+            "required": "Введите дату или вопрос для лицевой стороны карточки.",
+            "max_length": "Текст слишком длинный — не более 400 символов.",
+        },
+    )
+
+    back = forms.CharField(
+        label="Обратная сторона",
+        widget=forms.Textarea(attrs={
+            "class": "form-input form-input--textarea",
+            "placeholder": "Событие или ответ",
+            "rows": 3,
+        }),
+        error_messages={
+            "required": "Введите событие или ответ для обратной стороны карточки.",
+        },
+    )
+
+    hint = forms.CharField(
+        label="Подсказка (необязательно)",
+        max_length=300,
         required=False,
-        empty_label="— Не привязывать к эпохе —",
+        widget=forms.TextInput(attrs={
+            "class": "form-input",
+            "placeholder": "Маленькая подсказка, если застряли",
+        }),
+        error_messages={
+            "max_length": "Подсказка слишком длинная — не более 300 символов.",
+        },
+    )
+
+    era = forms.ChoiceField(
         label="Эпоха",
-        widget=forms.Select(attrs={"class": "form-select"}),
-    )
-    lecture = forms.ModelChoiceField(
-        queryset=Lecture.objects.select_related("era").order_by(
-            "era__order", "order"
-        ),
-        required=False,
-        empty_label="— Не привязывать к лекции —",
-        label="Лекция",
-        widget=forms.Select(attrs={"class": "form-select"}),
+        error_messages={
+            "required": "Пожалуйста, выберите эпоху.",
+            "invalid_choice": "Выбрана несуществующая эпоха.",
+        },
     )
 
-    class Meta:
-        model = HistoryCard
-        fields = ["front", "back", "hint", "era", "lecture"]
-        labels = {
-            "front": "Лицевая сторона",
-            "back": "Обратная сторона",
-            "hint": "Подсказка (необязательно)",
-        }
-        help_texts = {
-            "front": "Дата, понятие или вопрос — то, что видно сначала.",
-            "back": "Событие, определение или ответ — раскрывается при перевороте.",
-            "hint": "Небольшая подсказка, если карточка слишком сложная.",
-        }
-        widgets = {
-            "front": forms.TextInput(attrs={
-                "class": "form-input",
-                "placeholder": "Например: 1703 год",
-            }),
-            "back": forms.Textarea(attrs={
-                "class": "form-textarea",
-                "rows": 3,
-                "placeholder": "Например: Основание Санкт-Петербурга Петром I",
-            }),
-            "hint": forms.TextInput(attrs={
-                "class": "form-input",
-                "placeholder": "Например: Связано с Петром I",
-            }),
-        }
+    def __init__(self, *args, era_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        choices = self.ERA_CHOICES_PLACEHOLDER + (era_choices or [])
+        self.fields["era"].choices = choices
 
     def clean_front(self):
-        """Validate front side is not empty or whitespace-only."""
+        """Ensure front text is not only whitespace."""
         value = self.cleaned_data.get("front", "").strip()
         if not value:
             raise forms.ValidationError(
-                "Лицевая сторона не может быть пустой."
-            )
-        if len(value) < 2:
-            raise forms.ValidationError(
-                "Слишком короткое значение — минимум 2 символа."
+                "Текст лицевой стороны не может состоять только из пробелов."
             )
         return value
 
     def clean_back(self):
-        """Validate back side is meaningful."""
+        """Ensure back text is not only whitespace."""
         value = self.cleaned_data.get("back", "").strip()
         if not value:
             raise forms.ValidationError(
-                "Обратная сторона не может быть пустой."
-            )
-        if len(value) < 5:
-            raise forms.ValidationError(
-                "Напишите немного подробнее — минимум 5 символов."
+                "Текст обратной стороны не может состоять только из пробелов."
             )
         return value
+
+    def clean_era(self):
+        """Validate era id is a positive integer."""
+        value = self.cleaned_data.get("era", "")
+        if not value:
+            raise forms.ValidationError("Пожалуйста, выберите эпоху.")
+        try:
+            era_id = int(value)
+        except (ValueError, TypeError) as exc:
+            raise forms.ValidationError("Некорректный идентификатор эпохи.") from exc
+        if era_id <= 0:
+            raise forms.ValidationError("Некорректный идентификатор эпохи.")
+        return era_id
+
+
+class QuizSettingsForm(forms.Form):
+    """
+    Form for configuring a quiz session:
+    which era to draw questions from and how many questions.
+    """
+
+    COUNT_CHOICES = [
+        (3,  "3 вопроса — быстрая разминка"),
+        (5,  "5 вопросов — стандарт"),
+        (10, "10 вопросов — серьёзная проверка"),
+    ]
+
+    era = forms.ChoiceField(
+        label="Тема (эпоха)",
+        required=True,
+        error_messages={
+            "required": "Пожалуйста, выберите эпоху.",
+            "invalid_choice": "Выбрана несуществующая эпоха.",
+        },
+    )
+
+    count = forms.ChoiceField(
+        label="Количество вопросов",
+        choices=COUNT_CHOICES,
+        initial=5,
+        error_messages={
+            "required": "Укажите количество вопросов.",
+            "invalid_choice": "Недопустимое количество вопросов.",
+        },
+    )
+
+    def __init__(self, *args, era_choices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        base = [("all", "Все эпохи")]
+        self.fields["era"].choices = base + (era_choices or [])
+
+    def clean_count(self):
+        """Ensure count is a valid positive integer."""
+        raw = self.cleaned_data.get("count")
+        try:
+            value = int(raw)
+        except (ValueError, TypeError) as exc:
+            raise forms.ValidationError("Некорректное количество вопросов.") from exc
+        allowed = [c[0] for c in self.COUNT_CHOICES]
+        if value not in allowed:
+            raise forms.ValidationError("Недопустимое количество вопросов.")
+        return value
+
+    def clean_era(self):
+        """Accept 'all' or a numeric era pk."""
+        value = self.cleaned_data.get("era", "")
+        if value == "all":
+            return "all"
+        try:
+            era_id = int(value)
+        except (ValueError, TypeError) as exc:
+            raise forms.ValidationError("Некорректный идентификатор эпохи.") from exc
+        if era_id <= 0:
+            raise forms.ValidationError("Некорректный идентификатор эпохи.")
+        return era_id
