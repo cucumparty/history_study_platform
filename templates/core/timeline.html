@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static core_extras %}
+
+{% block title %}Параллельный таймлайн — Хроники России{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="container">
+    <p class="page-hero__eyebrow">{{ total_years }} временн{{ total_years|pluralize:"ая точка,ые точки,ых точек" }}</p>
+    <h1 class="page-hero__title">Параллельный таймлайн</h1>
+    <p class="page-hero__sub">
+      Что происходило в России и в остальном мире в одно и то же время
+    </p>
+  </div>
+</section>
+
+<div class="timeline-page">
+  <div class="container">
+
+    <!-- Era filter -->
+    <div class="card-filters">
+      <a href="{% url 'core:timeline' %}"
+         class="era-tab {% if not active_era %}era-tab--active{% endif %}">
+        Все эпохи
+      </a>
+      {% for era in eras %}
+        <a href="{% url 'core:timeline' %}?era={{ era.pk }}"
+           class="era-tab {% if active_era.pk == era.pk %}era-tab--active{% endif %}"
+           style="--tab-color: {{ era.color }};">
+          {{ era.name }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Column headers -->
+    <div class="tl-columns-header">
+      <div class="tl-col-head tl-col-head--russia">
+        <span class="tl-col-head__icon">🇷🇺</span>
+        <span class="tl-col-head__label">Россия</span>
+        <span class="tl-col-head__count">{{ russia_count }} событ{{ russia_count|pluralize:"ие,ия,ий" }}</span>
+      </div>
+      <div class="tl-col-head tl-col-head--year">Год</div>
+      <div class="tl-col-head tl-col-head--world">
+        <span class="tl-col-head__icon">🌍</span>
+        <span class="tl-col-head__label">Мир</span>
+        <span class="tl-col-head__count">{{ world_count }} событ{{ world_count|pluralize:"ие,ия,ий" }}</span>
+      </div>
+    </div>
+
+    {% if year_groups %}
+
+      <!-- Timeline rows -->
+      <div class="tl-rows" id="tlRows">
+        {% for group in year_groups %}
+          <div class="tl-row">
+
+            <!-- Russia column -->
+            <div class="tl-cell tl-cell--russia">
+              {% for event in group.russia %}
+                <div class="tl-event tl-event--russia">
+                  <p class="tl-event__title">{{ event.title }}</p>
+                  {% if event.description %}
+                    <p class="tl-event__desc">{{ event.description }}</p>
+                  {% endif %}
+                  {% if event.era %}
+                    <span class="tl-event__era"
+                          style="background: {{ event.era.color }};">
+                      {{ event.era.name }}
+                    </span>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- Year marker -->
+            <div class="tl-year-marker">
+              <div class="tl-year-marker__line"></div>
+              <span class="tl-year-marker__label">{{ group.year }}</span>
+              <div class="tl-year-marker__line"></div>
+            </div>
+
+            <!-- World column -->
+            <div class="tl-cell tl-cell--world">
+              {% for event in group.world %}
+                <div class="tl-event tl-event--world">
+                  <div class="tl-event__region-tag">
+                    {{ region_labels|get_item:event.region|default:event.region }}
+                  </div>
+                  <p class="tl-event__title">{{ event.title }}</p>
+                  {% if event.description %}
+                    <p class="tl-event__desc">{{ event.description }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+          </div><!-- /tl-row -->
+        {% endfor %}
+      </div>
+
+    {% else %}
+      <div class="empty-state">
+        <p class="empty-state__icon">🌍</p>
+        <p>Событий по выбранному фильтру нет.
+          <a href="{% url 'core:timeline' %}">Показать все</a>
+        </p>
+      </div>
+    {% endif %}
+
+    <!-- Facts CTA -->
+    <div class="facts-timeline-cta">
+      <div class="facts-timeline-cta__inner">
+        <div>
+          <h3>Хотите узнать больше деталей?</h3>
+          <p>В разделе «Факты» — неожиданные подробности о событиях и людях этих эпох.</p>
+        </div>
+        <a href="{% url 'core:fact_list' %}" class="btn btn--primary">💡 К фактам</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Animate rows on scroll into view
+  const rows = document.querySelectorAll('.tl-row');
+  if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('tl-row--visible');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    rows.forEach(r => obs.observe(r));
+  } else {
+    rows.forEach(r => r.classList.add('tl-row--visible'));
+  }
+</script>
+{% endblock %}

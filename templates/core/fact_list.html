@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static core_extras %}
+
+{% block title %}Интересные факты об истории России — Хроники России{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="container">
+    <p class="page-hero__eyebrow">{{ total }} фак{{ total|pluralize:"т,та,тов" }}</p>
+    <h1 class="page-hero__title">Интересные факты</h1>
+    <p class="page-hero__sub">То, чего нет в учебниках — но что делает историю живой</p>
+  </div>
+</section>
+
+<div class="facts-page">
+  <div class="container">
+
+    <!-- Era filter -->
+    <div class="card-filters">
+      <a href="{% url 'core:fact_list' %}"
+         class="era-tab {% if not active_era %}era-tab--active{% endif %}">
+        Все эпохи
+      </a>
+      {% for era in eras %}
+        {% if era.facts.count %}
+          <a href="{% url 'core:fact_list' %}?era={{ era.pk }}"
+             class="era-tab {% if active_era.pk == era.pk %}era-tab--active{% endif %}"
+             style="--tab-color: {{ era.color }};">
+            {{ era.name }}
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if facts %}
+      <div class="facts-grid">
+        {% for fact in facts %}
+          <article class="fact-card {% if fact.is_featured %}fact-card--featured{% endif %}">
+            <div class="fact-card__top">
+              {% if fact.year %}
+                <span class="fact-card__year">{{ fact.year }} г.</span>
+              {% endif %}
+              {% if fact.era %}
+                <span class="fact-card__era"
+                      style="background: {{ fact.era.color }};">{{ fact.era.name }}</span>
+              {% endif %}
+              {% if fact.is_featured %}
+                <span class="fact-card__featured">★ Выбор редакции</span>
+              {% endif %}
+            </div>
+            <h2 class="fact-card__title">{{ fact.title }}</h2>
+            <p class="fact-card__content">{{ fact.content }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p class="empty-state__icon">💡</p>
+        <p>По выбранному фильтру фактов нет.
+          <a href="{% url 'core:fact_list' %}">Показать все</a>
+        </p>
+      </div>
+    {% endif %}
+
+    <!-- CTA to timeline -->
+    <div class="facts-timeline-cta">
+      <div class="facts-timeline-cta__inner">
+        <div class="facts-timeline-cta__text">
+          <h3>А что происходило в это время в мире?</h3>
+          <p>Посмотрите на параллельный таймлайн — события России и других стран в одном месте.</p>
+        </div>
+        <a href="{% url 'core:timeline' %}" class="btn btn--primary">
+          🌍 Открыть таймлайн
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
