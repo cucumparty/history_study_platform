@@ -23,7 +23,7 @@
     <h1 class="test-header__title">{{ lecture.title }}</h1>
     <p class="test-header__sub">
       {{ questions|length }} вопрос{{ questions|length|pluralize:",,ов" }} ·
-      Выберите один вариант ответа для каждого вопроса
+      Выберите один вариант ответа
     </p>
   </div>
 </header>
@@ -41,33 +41,23 @@
       {% csrf_token %}
 
       {% for question in questions %}
-        {% with fname="question_"|add:question.pk|stringformat:"s" %}
-        <div class="test-question {% if form.errors and fname in form.errors %}test-question--error{% endif %}"
-             id="q{{ forloop.counter }}">
+        <div class="test-question" id="q{{ forloop.counter }}">
           <div class="test-question__number">{{ forloop.counter }}</div>
           <h3 class="test-question__text">{{ question.text }}</h3>
-
           <div class="test-options">
             {% for letter, text in question.get_options %}
-              <label class="test-option {% if form.data|get_item:fname == letter %}test-option--selected{% endif %}"
-                     for="id_{{ fname }}_{{ letter }}">
+              <label class="test-option" for="id_q{{ question.pk }}_{{ letter }}">
                 <input type="radio"
-                       name="{{ fname }}"
-                       id="id_{{ fname }}_{{ letter }}"
+                       name="question_{{ question.pk }}"
+                       id="id_q{{ question.pk }}_{{ letter }}"
                        value="{{ letter }}"
-                       class="test-option__radio"
-                       {% if form.data|get_item:fname == letter %}checked{% endif %} />
+                       class="test-option__radio" />
                 <span class="test-option__letter">{{ letter }}</span>
                 <span class="test-option__text">{{ text }}</span>
               </label>
             {% endfor %}
-
-            {% if form.errors and fname in form.errors %}
-              <p class="test-field-error">⚠ Выберите один из вариантов ответа.</p>
-            {% endif %}
           </div>
         </div>
-        {% endwith %}
       {% endfor %}
 
       <div class="test-submit">
@@ -86,35 +76,17 @@
 
 {% block extra_js %}
 <script>
-  // Highlight selected radio visually
-  document.querySelectorAll('.test-option__radio').forEach(radio => {
-    radio.addEventListener('change', () => {
-      const name = radio.name;
-      document.querySelectorAll('input[name="' + name + '"]').forEach(r => {
+  // Подсветка выбранного варианта
+  document.querySelectorAll('.test-option__radio').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      var name = radio.name;
+      document.querySelectorAll('input[name="' + name + '"]').forEach(function(r) {
         r.closest('.test-option').classList.remove('test-option--selected');
       });
       radio.closest('.test-option').classList.add('test-option--selected');
     });
   });
 
-  // Client-side validation before submit
-  document.getElementById('testForm').addEventListener('submit', function(e) {
-    const questions = document.querySelectorAll('.test-question');
-    let firstUnanswered = null;
-    questions.forEach(function(block) {
-      const radios = block.querySelectorAll('input[type=radio]');
-      const answered = Array.from(radios).some(r => r.checked);
-      if (!answered) {
-        block.classList.add('test-question--error');
-        if (!firstUnanswered) firstUnanswered = block;
-      } else {
-        block.classList.remove('test-question--error');
-      }
-    });
-    if (firstUnanswered) {
-      e.preventDefault();
-      firstUnanswered.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  });
+
 </script>
 {% endblock %}

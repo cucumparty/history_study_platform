@@ -7,7 +7,6 @@
 
 <section class="page-hero">
   <div class="container">
-    <p class="page-hero__eyebrow">{{ total }} лекци{{ total|pluralize:"я,и,й" }}</p>
     <h1 class="page-hero__title">Все лекции</h1>
     <p class="page-hero__sub">Выбери эпоху — читай, запоминай, проверяй себя</p>
   </div>
@@ -42,9 +41,6 @@
                   <p class="llist-era__desc">{{ era.description }}</p>
                 {% endif %}
               </div>
-              <span class="llist-era__count">
-                {{ era.lectures.count }} лекци{{ era.lectures.count|pluralize:"я,и,й" }}
-              </span>
             </div>
 
             <div class="llist-grid">
@@ -62,19 +58,6 @@
                   </div>
                   <h3 class="llist-card__title">{{ lecture.title }}</h3>
                   <p class="llist-card__desc">{{ lecture.short_description }}</p>
-                  <div class="llist-card__footer">
-                    {% with q_count=lecture.questions.count %}
-                      {% if q_count %}
-                        <span class="llist-card__meta">📝 Тест: {{ q_count }} вопр{{ q_count|pluralize:"ос,оса,осов" }}</span>
-                      {% endif %}
-                    {% endwith %}
-                    {% with c_count=lecture.cards.count %}
-                      {% if c_count %}
-                        <span class="llist-card__meta">🃏 {{ c_count }} карточк{{ c_count|pluralize:"а,и,ек" }}</span>
-                      {% endif %}
-                    {% endwith %}
-                    <span class="llist-card__arrow">Читать →</span>
-                  </div>
                 </a>
               {% endfor %}
             </div>

@@ -16,7 +16,7 @@
   <div class="container">
 
     <!-- Epoch presets -->
-    <div class="tl-presets">
+    <div class="tl-presets" style="margin-bottom: 56px;">
       <a href="{% url 'core:timeline' %}"
          class="era-tab {% if not selected_era %}era-tab--active{% endif %}">
         Все эпохи
@@ -38,13 +38,11 @@
         <div class="tl-col-head tl-col-head--russia">
           <span class="tl-col-head__icon">🇷🇺</span>
           <span class="tl-col-head__label">Россия</span>
-          <span class="tl-col-head__count">{{ russia_count }} событ{{ russia_count|pluralize:"ие,ия,ий" }}</span>
         </div>
         <div class="tl-col-head tl-col-head--year">Год</div>
         <div class="tl-col-head tl-col-head--world">
           <span class="tl-col-head__icon">🌍</span>
           <span class="tl-col-head__label">Мир</span>
-          <span class="tl-col-head__count">{{ world_count }} событ{{ world_count|pluralize:"ие,ия,ий" }}</span>
         </div>
       </div>
 

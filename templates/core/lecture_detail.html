@@ -96,8 +96,7 @@
         <div class="ldetail-test-cta__inner">
           <div class="ldetail-test-cta__left">
             <h2>Проверьте себя</h2>
-            <p>Пройдите короткий тест по этой лекции — {{ questions|length }}
-              вопр{{ questions|length|pluralize:"ос,оса,осов" }}, это займёт пару минут.</p>
+            <p>Пройдите короткий тест по этой лекции</p>
           </div>
           <a href="{% url 'core:lecture_test' lecture.slug %}"
              class="btn btn--primary btn--lg">Пройти тест</a>
