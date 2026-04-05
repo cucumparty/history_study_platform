@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Результат квиза — Хроники России{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb" aria-label="Навигация">
+  <div class="container">
+    <a href="{% url 'core:home' %}">Главная</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:quiz_home' %}">Квиз</a>
+    <span class="breadcrumb__sep">›</span>
+    <span>Результат</span>
+  </div>
+</nav>
+
+<!-- Score banner -->
+<div class="result-banner
+  {% if percent == 100 %}result-banner--perfect
+  {% elif percent >= 60 %}result-banner--good
+  {% else %}result-banner--retry{% endif %}">
+  <div class="container">
+    <div class="result-banner__inner">
+      <div class="result-banner__score">
+        <span class="result-banner__num">{{ score }}</span>
+        <span class="result-banner__denom">/ {{ total }}</span>
+      </div>
+      <div class="result-banner__text">
+        {% if percent == 100 %}
+          <h2>Превосходно! Все верно 🏆</h2>
+          <p>Вы безупречно знаете этот раздел истории.</p>
+        {% elif percent >= 80 %}
+          <h2>Отличный результат! 🥇</h2>
+          <p>{{ percent }}% — очень достойно. Пара вопросов — и было бы идеально.</p>
+        {% elif percent >= 60 %}
+          <h2>Хороший результат 👍</h2>
+          <p>{{ percent }}% — неплохо, но есть куда расти.</p>
+        {% else %}
+          <h2>Стоит повторить 📖</h2>
+          <p>{{ percent }}% — пройдите лекции по этой теме и попробуйте снова.</p>
+        {% endif %}
+      </div>
+      <!-- Circular ring -->
+      <div class="result-ring" style="--pct: {{ percent }};">
+        <svg viewBox="0 0 80 80" class="result-ring__svg">
+          <circle class="result-ring__track" cx="40" cy="40" r="34"/>
+          <circle class="result-ring__fill"  cx="40" cy="40" r="34"
+                  stroke-dasharray="213.6"
+                  stroke-dashoffset="{{ 213.6|add:"-"|add:percent|floatformat:0 }}"/>
+        </svg>
+        <span class="result-ring__label">{{ percent }}%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed answers -->
+<div class="result-body">
+  <div class="container container--narrow">
+    <h2 class="result-body__title">Разбор ответов</h2>
+
+    {% for item in results %}
+      <div class="result-item {% if item.is_correct %}result-item--correct{% else %}result-item--wrong{% endif %}">
+        <div class="result-item__header">
+          <span class="result-item__icon">{% if item.is_correct %}✓{% else %}✗{% endif %}</span>
+          <span class="result-item__num">Вопрос {{ forloop.counter }}</span>
+          {% if item.question.lecture %}
+            <span class="result-item__era"
+                  style="background: {{ item.question.lecture.era.color }};">
+              {{ item.question.lecture.era.name }}
+            </span>
+          {% endif %}
+        </div>
+        <p class="result-item__question">{{ item.question.text }}</p>
+
+        <div class="result-item__answers">
+          {% for letter, text in item.options %}
+            <div class="result-answer
+              {% if letter == item.question.correct_option %}result-answer--correct{% endif %}
+              {% if letter == item.chosen and not item.is_correct %}result-answer--wrong{% endif %}
+            ">
+              <span class="result-answer__letter">{{ letter }}</span>
+              <span class="result-answer__text">{{ text }}</span>
+              {% if letter == item.question.correct_option %}
+                <span class="result-answer__tag result-answer__tag--correct">Верно</span>
+              {% endif %}
+              {% if letter == item.chosen and not item.is_correct %}
+                <span class="result-answer__tag result-answer__tag--wrong">Ваш ответ</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if item.question.explanation %}
+          <div class="result-item__explanation">
+            💡 {{ item.question.explanation }}
+          </div>
+        {% endif %}
+
+        {% if item.question.lecture %}
+          <div class="result-item__lecture-link">
+            <a href="{% url 'core:lecture_detail' item.question.lecture.slug %}">
+              → Перечитать лекцию: «{{ item.question.lecture.title }}»
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <!-- Actions -->
+    <div class="result-actions">
+      <a href="{% url 'core:quiz_play' %}?count={{ count }}{% if era_id %}&era={{ era_id }}{% endif %}"
+         class="btn btn--primary">Ещё раз с теми же настройками</a>
+      <a href="{% url 'core:quiz_home' %}" class="btn btn--ghost">Изменить настройки</a>
+      <a href="{% url 'core:lecture_list' %}" class="btn btn--ghost">К лекциям</a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Квиз по истории России — Хроники России{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="container">
+    <p class="page-hero__eyebrow">{{ total_q }} вопрос{{ total_q|pluralize:",,ов" }} в базе</p>
+    <h1 class="page-hero__title">Квиз</h1>
+    <p class="page-hero__sub">Выберите тему и количество вопросов — и проверьте себя</p>
+  </div>
+</section>
+
+<div class="quiz-home-body">
+  <div class="container">
+    <div class="quiz-home-layout">
+
+      <!-- ── Settings form ── -->
+      <div class="quiz-settings-block">
+        <h2 class="quiz-settings-block__title">Настройки квиза</h2>
+
+        <form method="post" class="quiz-settings-form" novalidate>
+          {% csrf_token %}
+
+          <!-- Era choice -->
+          <div class="form-group {% if form.era.errors %}form-group--error{% endif %}">
+            <label class="form-label">{{ form.era.label }}</label>
+            <div class="quiz-era-cards">
+              {% for val, label in form.era.field.choices %}
+                <label class="quiz-era-card
+                  {% if val == 'all' %}quiz-era-card--all{% endif %}
+                  {% if form.era.value|stringformat:'s' == val|stringformat:'s' or not form.era.value and val == 'all' %}quiz-era-card--selected{% endif %}">
+                  <input type="radio" name="era" value="{{ val }}"
+                    {% if form.era.value|stringformat:'s' == val|stringformat:'s' or not form.era.value and val == 'all' %}checked{% endif %}
+                    class="quiz-era-card__radio" />
+                  {% if val == 'all' %}
+                    <span class="quiz-era-card__icon">🌍</span>
+                    <span class="quiz-era-card__name">{{ label }}</span>
+                  {% else %}
+                    {% for stat in era_stats %}
+                      {% if stat.era.pk|stringformat:"s" == val|stringformat:"s" %}
+                        <span class="quiz-era-card__dot"
+                              style="background: {{ stat.era.color }};"></span>
+                        <span class="quiz-era-card__name">{{ label }}</span>
+                        <span class="quiz-era-card__count">{{ stat.q_count }} вопр.</span>
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                </label>
+              {% endfor %}
+            </div>
+            {% for err in form.era.errors %}
+              <p class="form-hint form-hint--error">⚠ {{ err }}</p>
+            {% endfor %}
+          </div>
+
+          <!-- Count choice -->
+          <div class="form-group {% if form.count.errors %}form-group--error{% endif %}">
+            <label class="form-label">{{ form.count.label }}</label>
+            <div class="quiz-count-options">
+              {% for val, label in form.count.field.choices %}
+                <label class="quiz-count-option
+                  {% if form.count.value|stringformat:'s' == val|stringformat:'s' or not form.count.value and val == 5 %}quiz-count-option--selected{% endif %}">
+                  <input type="radio" name="count" value="{{ val }}"
+                    {% if form.count.value|stringformat:'s' == val|stringformat:'s' or not form.count.value and val == 5 %}checked{% endif %}
+                    class="quiz-count-option__radio" />
+                  <span class="quiz-count-option__num">{{ val }}</span>
+                  <span class="quiz-count-option__desc">{{ label|slice:"3:" }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            {% for err in form.count.errors %}
+              <p class="form-hint form-hint--error">⚠ {{ err }}</p>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--lg quiz-start-btn">
+            ▶ Начать квиз
+          </button>
+        </form>
+      </div>
+
+      <!-- ── Stats sidebar ── -->
+      <div class="quiz-stats-block">
+        <h2 class="quiz-stats-block__title">Вопросов по эпохам</h2>
+        {% for stat in era_stats %}
+          <div class="quiz-stat-row">
+            <span class="quiz-stat-row__dot"
+                  style="background: {{ stat.era.color }};"></span>
+            <span class="quiz-stat-row__name">{{ stat.era.name }}</span>
+            <span class="quiz-stat-row__bar-wrap">
+              <span class="quiz-stat-row__bar"
+                    style="width: {% widthratio stat.q_count total_q 100 %}%;
+                           background: {{ stat.era.color }};"></span>
+            </span>
+            <span class="quiz-stat-row__num">{{ stat.q_count }}</span>
+          </div>
+        {% endfor %}
+
+        <div class="quiz-stat-total">
+          Итого: <strong>{{ total_q }}</strong> вопросов
+        </div>
+
+        <div class="quiz-tip">
+          <p class="quiz-tip__title">💡 Совет</p>
+          <p>Начните с одной эпохи — это проще, чем сразу все. После уверенного результата переходите к «Всем эпохам».</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Highlight era cards on change
+  document.querySelectorAll('.quiz-era-card__radio').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.quiz-era-card').forEach(c =>
+        c.classList.remove('quiz-era-card--selected'));
+      radio.closest('.quiz-era-card').classList.add('quiz-era-card--selected');
+    });
+  });
+
+  // Highlight count options on change
+  document.querySelectorAll('.quiz-count-option__radio').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.quiz-count-option').forEach(c =>
+        c.classList.remove('quiz-count-option--selected'));
+      radio.closest('.quiz-count-option').classList.add('quiz-count-option--selected');
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Квиз — Хроники России{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb" aria-label="Навигация">
+  <div class="container">
+    <a href="{% url 'core:home' %}">Главная</a>
+    <span class="breadcrumb__sep">›</span>
+    <a href="{% url 'core:quiz_home' %}">Квиз</a>
+    <span class="breadcrumb__sep">›</span>
+    <span>Вопросы</span>
+  </div>
+</nav>
+
+<!-- Quiz progress header -->
+<header class="quiz-play-header">
+  <div class="container">
+    <div class="quiz-play-header__inner">
+      <div class="quiz-play-meta">
+        <span class="quiz-play-meta__label">🏆 Квиз</span>
+        <span class="quiz-play-meta__count">
+          <span id="qCurrent">1</span> / {{ total }}
+        </span>
+      </div>
+      <div class="quiz-play-progress">
+        <div class="quiz-play-progress__fill" id="quizProgressFill"
+             style="width: {% widthratio 0 total 100 %}%;"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="quiz-play-body">
+  <div class="container container--narrow">
+
+    <form method="post" class="quiz-play-form" novalidate id="quizForm">
+      {% csrf_token %}
+      <input type="hidden" name="question_ids" value="{{ question_ids }}" />
+
+      {% for question in questions %}
+        <div class="quiz-qblock" id="qblock_{{ forloop.counter }}"
+             {% if not forloop.first %}style="display:none;"{% endif %}>
+
+          <div class="quiz-qblock__header">
+            <span class="quiz-qblock__num">Вопрос {{ forloop.counter }}</span>
+            {% if question.lecture %}
+              <span class="quiz-qblock__era"
+                    style="background: {{ question.lecture.era.color }};">
+                {{ question.lecture.era.name }}
+              </span>
+            {% endif %}
+          </div>
+
+          <h2 class="quiz-qblock__text">{{ question.text }}</h2>
+
+          <div class="quiz-options">
+            {% for letter, text in question.get_options %}
+              <label class="quiz-option" for="q_{{ question.pk }}_{{ letter }}">
+                <input type="radio"
+                       name="q_{{ question.pk }}"
+                       id="q_{{ question.pk }}_{{ letter }}"
+                       value="{{ letter }}"
+                       class="quiz-option__radio"
+                       required />
+                <span class="quiz-option__letter">{{ letter }}</span>
+                <span class="quiz-option__text">{{ text }}</span>
+              </label>
+            {% endfor %}
+          </div>
+
+          <div class="quiz-qblock__nav">
+            {% if not forloop.first %}
+              <button type="button" class="btn btn--ghost quiz-prev-btn"
+                      data-num="{{ forloop.counter }}">← Назад</button>
+            {% else %}
+              <span></span>
+            {% endif %}
+
+            {% if not forloop.last %}
+              <button type="button" class="btn btn--primary quiz-next-btn"
+                      data-num="{{ forloop.counter }}" data-total="{{ total }}">
+                Дальше →
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn--primary quiz-submit-btn">
+                Завершить квиз ✓
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentQ = 1;
+  const total  = {{ total }};
+
+  function showQuestion(num) {
+    document.querySelectorAll('.quiz-qblock').forEach(b => b.style.display = 'none');
+    const block = document.getElementById('qblock_' + num);
+    if (block) {
+      block.style.display = '';
+      block.classList.add('quiz-qblock--animate');
+      setTimeout(() => block.classList.remove('quiz-qblock--animate'), 400);
+    }
+    document.getElementById('qCurrent').textContent = num;
+    const pct = ((num - 1) / total) * 100;
+    document.getElementById('quizProgressFill').style.width = pct + '%';
+    currentQ = num;
+  }
+
+  // Next buttons
+  document.querySelectorAll('.quiz-next-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const num   = parseInt(btn.dataset.num);
+      // Check if this question is answered
+      const block = document.getElementById('qblock_' + num);
+      const radios = block.querySelectorAll('input[type=radio]');
+      const answered = [...radios].some(r => r.checked);
+      if (!answered) {
+        // Shake the options
+        block.querySelector('.quiz-options').classList.add('quiz-options--shake');
+        setTimeout(() =>
+          block.querySelector('.quiz-options').classList.remove('quiz-options--shake'), 500);
+        return;
+      }
+      showQuestion(num + 1);
+    });
+  });
+
+  // Prev buttons
+  document.querySelectorAll('.quiz-prev-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const num = parseInt(btn.dataset.num);
+      showQuestion(num - 1);
+    });
+  });
+
+  // Highlight selected option
+  document.querySelectorAll('.quiz-option__radio').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const name = radio.name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r =>
+        r.closest('.quiz-option').classList.remove('quiz-option--selected'));
+      radio.closest('.quiz-option').classList.add('quiz-option--selected');
+    });
+    if (radio.checked) {
+      radio.closest('.quiz-option').classList.add('quiz-option--selected');
+    }
+  });
+
+  // Submit validation — make sure all answered
+  document.getElementById('quizForm').addEventListener('submit', (e) => {
+    for (let i = 1; i <= total; i++) {
+      const block = document.getElementById('qblock_' + i);
+      if (!block) continue;
+      const radios = block.querySelectorAll('input[type=radio]');
+      const answered = [...radios].some(r => r.checked);
+      if (!answered) {
+        e.preventDefault();
+        showQuestion(i);
+        block.querySelector('.quiz-options').classList.add('quiz-options--shake');
+        setTimeout(() =>
+          block.querySelector('.quiz-options').classList.remove('quiz-options--shake'), 500);
+        return;
+      }
+    }
+    // Update progress to 100%
+    document.getElementById('quizProgressFill').style.width = '100%';
+  });
+</script>
+{% endblock %}
